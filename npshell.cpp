@@ -3,6 +3,7 @@
 #include <vector>
 #include <string.h>
 #include <algorithm>
+#include <sstream>
 
 #define PROMPT_SYMBOL "%" 
 
@@ -15,13 +16,37 @@ typedef struct {
     int pipe_out = -1;
 
     // copy constructor
-    // Command() : (c.n) { } // user-defined copy ctor
+    // Command() : (c.n) { } // user-definced copy ctor
 } Command;
+
+std::ostream& operator<< (std::ostream &o, const Command &c){
+      return o << "cmd = " << c.cmd << " | "
+               << "in_file = " << c.in_file << " | "
+               << "out_file = " << c.out_file << " | "
+               << "pipe_in   = " << c.pipe_in   << " | "
+               << "pipe_out  = " << c.pipe_out;
+}
 
 Command parse_cmd(std::string cmd_str){
 
 }
 
+int count_digit(int n){
+  int cnt = 0;
+  while (n != 0){
+    n = n/10;
+    cnt ++;
+  }
+  return cnt;
+}
+
+bool is_number(std::string s) {
+  bool is_num = true;
+  for (size_t i = 0; i < s.length(); i++){
+    is_num = isdigit(s[i]);
+  }
+  return is_num;
+}
 
 std::vector<Command> parse_cmds(std::string usr_ipt){
   std::vector<Command> cmds;
@@ -33,9 +58,21 @@ std::vector<Command> parse_cmds(std::string usr_ipt){
   char* ptr = strtok(usr_input, "|");
   while (ptr != NULL){
     Command cmd;
-
-    std::cout << ptr << std::endl;
     std::string c(ptr);
+
+    // if first word is number (pipe indicator)
+    std::stringstream ss;
+    ss.str(c);
+    ss.exceptions(std::ios::failbit);
+    ss.clear();
+    std::string pipe_num;
+    ss >> pipe_num;
+    if (is_number(pipe_num)){
+      // take off the number in front of cmd
+      c = c.substr(pipe_num.size());
+      cmds.back().pipe_out = std::stoi(pipe_num);
+    }
+
     // if there is '>'
     if (c.find('>') != std::string::npos){
       char o_str[256];
@@ -88,8 +125,12 @@ void get_cmd(){
   // parse
   cmds = parse_cmds(usr_input);
 
+  for (size_t i = 0; i < cmds.size(); i++){
+    std::cout << cmds[i] << std::endl;
+  }
   // exec
   // return exec status
+  
 }
 
 int exec_cmd(){
