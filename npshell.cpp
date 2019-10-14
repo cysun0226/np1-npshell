@@ -6,7 +6,7 @@
 #include <sstream>
 
 #define PROMPT_SYMBOL "%" 
-
+enum Status{NO_ERROR, EXIT, ERROR};
 
 typedef struct {
     std::string cmd;
@@ -115,7 +115,9 @@ std::vector<Command> parse_cmds(std::string usr_ipt){
   return cmds;
 }
 
-void get_cmd(){
+int get_cmd(){
+  int status = 0;
+
   // prompt
   std::cout << PROMPT_SYMBOL << " " << std::flush;
   // get user input
@@ -130,7 +132,8 @@ void get_cmd(){
   }
   // exec
   // return exec status
-  
+
+  return status;
 }
 
 int exec_cmd(){
@@ -140,8 +143,10 @@ int exec_cmd(){
 
 
 int main(){
-
-  get_cmd();
+  int status;
+  do{
+    status = get_cmd();
+  } while (status == NO_ERROR);
   
   return 0;
 }
