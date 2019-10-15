@@ -12,9 +12,9 @@ enum{READ, WRITE};
 
 int main() {
     /* sample input */
-    // removetag test.html |2 removetag test.html | number
+    // cat test.html |2 removetag test.html | number
 
-    int fd[4];
+    int fd[8];
     pid_t pid;
     char buf[1024];
     pipe(fd);
@@ -22,10 +22,10 @@ int main() {
     pid = fork();
 
     // child1
-    // pipe_id = 0;
+    // pipe_id = 1;
     if (pid == 0){
         int pipe_id = 0;
-        dup2(fd[pipe_id*2+WRITE], STDOUT_FILENO); // dup output to stdout
+        dup2(fd[pipe_id*2+WRITE], STDOUT_FILENO); // dup stdout to pipe_id
         close(fd[pipe_id*2+READ]);
         close(fd[pipe_id*2+WRITE]);
         execlp("bin/cat", "bin/cat", "test.html", (char*) NULL);
@@ -44,10 +44,10 @@ int main() {
     pid_t pid2;
     pid2 = fork();
     if (pid2 == 0){
-        dup2(fd[READ], STDIN_FILENO); // dup stdin to in
-        dup2(fd[WRITE], STDOUT_FILENO); // dup output to stdout
-        close(fd[WRITE]);
-        close(fd[READ]);
+        // dup2(fd[READ], STDIN_FILENO); // dup stdin to in
+        // dup2(fd[WRITE], STDOUT_FILENO); // dup output to stdout
+        // close(fd[WRITE]);
+        // close(fd[READ]);
         execlp("bin/removetag", "bin/removetag", "test.html", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
@@ -61,7 +61,8 @@ int main() {
     pid_t pid3;
     pid3 = fork();
     if (pid3 == 0){
-        dup2(fd[READ], STDIN_FILENO);
+        dup2(fd[0*2+READ], STDIN_FILENO); // dup pipe of 1 to in
+        // dup2(fd[READ], STDIN_FILENO);
         close(fd[WRITE]);
         close(fd[READ]);
         execlp("bin/number", "bin/number", (char*) NULL);
