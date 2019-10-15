@@ -1,5 +1,5 @@
 /*
- *   A sample of "ls -l | grep cpp"
+ *   A sample of "ls -l | grep cpp "
  */
 
 
