@@ -198,8 +198,8 @@ int get_cmd(){
 
 int main(){
   // set PATH
-  char default_path[] = "PATH=./bin:.";
-  // putenv(default_path);
+  char default_path[] = "PATH=bin:.";
+  putenv(default_path);
 
   int status;
   do{
