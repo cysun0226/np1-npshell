@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 
 #define PROMPT_SYMBOL "%" 
+#define PIPE_BUFFER_SIZE 15000
 enum Status{SUCCESS, EXIT, ERROR};
 
 typedef struct {
@@ -127,8 +128,11 @@ int exec_cmd(Command cmd){
     return EXIT;
   }
   
-
   // fork a child to exec the cmd
+  // pipe
+  int pipefd[2];
+  char ls_str[] = "ls_str";
+
   pid = fork();
 
   switch (pid){
@@ -138,12 +142,27 @@ int exec_cmd(Command cmd){
 
   case 0: // child
     std::cout << "I'm child process, exec " << cmd.cmd << std::endl;
+    // dup2(pipefd[1], STDOUT_FILENO);
+    // close(pipefd[0]);
+    // close(pipefd[1]);
+    // status = execlp(cmd.cmd.c_str(), cmd.in_file.c_str(), NULL);
+    status = execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), cmd.in_file.c_str(), NULL);
+    std::cout << "unknown command" << std::endl;
     exit(0);
     break;
   
   default: // pid > 0, parent
     std::cout << "I'm parent, wait for child" << std::endl;
+    // close(pipefd[1]);
+    // char pipe_buffer[PIPE_BUFFER_SIZE];
+    // int char_n = read(pipefd[0], pipe_buffer, sizeof(pipe_buffer));
+    // std::cout << pipe_buffer << std::endl;
     wait(&status);
+    // pid_t tpid;
+    // do {
+    //    tpid = wait(&status);
+    //  } while(tpid != pid);
+
     std::cout << "catch child, status=" << status << std::endl;
     status = SUCCESS;
     break;
@@ -180,7 +199,7 @@ int get_cmd(){
 int main(){
   // set PATH
   char default_path[] = "PATH=./bin:.";
-  putenv(default_path);
+  // putenv(default_path);
 
   int status;
   do{
