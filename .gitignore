@@ -9,3 +9,4 @@ uni_test/npshell.h
 uni_test/pipe_cmd
 uni_test/pipe_test
 uni_test/vector_test
+uni_test/env_var_test
