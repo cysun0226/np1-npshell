@@ -13,6 +13,8 @@
 enum{READ, WRITE};
 
 int main() {
+    int in_fd[2];
+    int out_fd[2];
     int fd[2];
     pid_t pid;
     char buf[1024];
@@ -22,35 +24,42 @@ int main() {
 
     // child1
     if (pid == 0){
-        dup2(fd[WRITE], STDOUT_FILENO); // dup output to stdout
+        
+        // dup2(in_fd[READ], STDIN_FILENO); // dup output to stdout
         close(fd[READ]);
-        close(fd[WRITE]);
+        dup2(fd[WRITE], STDOUT_FILENO);
+        
+        // close(fd[WRITE]);
+        
         execlp("ls", "ls", "-l", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
+
     
     int status;
-    waitpid(pid, &status, WNOHANG); 
     // WNOHANG: return immediately if no child has exited. 
     //          to handle child first
-
+    waitpid(pid, &status, 0); 
     std::cout << "parent catch child 1" << std::endl;
+    
 
     // child2
     pid_t pid2;
     pid2 = fork();
     if (pid2 == 0){
-        dup2(fd[READ], STDIN_FILENO);
         close(fd[WRITE]);
-        close(fd[READ]);
+        dup2(fd[READ], STDIN_FILENO);
+        // dup2(fd[WRITE], STDOUT_FILENO);
+        // close(fd[READ]);
+        
         execlp("grep", "grep", "cpp", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
 
-        
-    waitpid(pid2, &status, WNOHANG);
+    close(fd[WRITE]);
+    waitpid(pid2, &status, 0);
     std::cout << "parent catch child 2" << std::endl;    
     
     return 0;
