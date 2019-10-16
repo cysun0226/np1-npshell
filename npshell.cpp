@@ -1,55 +1,10 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <string.h>
-#include <algorithm>
-#include <sstream>
-#include <unistd.h>
-#include <sys/wait.h>
-
-#define PROMPT_SYMBOL "%" 
-#define PIPE_BUFFER_SIZE 15000
-enum Status{SUCCESS, EXIT, ERROR};
-
-typedef struct {
-    std::string cmd;
-    std::string in_file = "";
-    std::string out_file = "";
-    int pipe_in = -1;
-    int pipe_out = -1;
-
-    // copy constructor
-    // Command() : (c.n) { } // user-definced copy ctor
-} Command;
-
-std::ostream& operator<< (std::ostream &o, const Command &c){
-      return o << "cmd = " << c.cmd << " | "
-               << "in_file = " << c.in_file << " | "
-               << "out_file = " << c.out_file << " | "
-               << "pipe_in   = " << c.pipe_in   << " | "
-               << "pipe_out  = " << c.pipe_out;
-}
+# include "npshell.h"
 
 Command parse_cmd(std::string cmd_str){
 
 }
 
-int count_digit(int n){
-  int cnt = 0;
-  while (n != 0){
-    n = n/10;
-    cnt ++;
-  }
-  return cnt;
-}
 
-bool is_number(std::string s) {
-  bool is_num = true;
-  for (size_t i = 0; i < s.length(); i++){
-    is_num = isdigit(s[i]);
-  }
-  return is_num;
-}
 
 std::vector<Command> parse_cmds(std::string usr_ipt){
   std::vector<Command> cmds;
@@ -129,15 +84,16 @@ int exec_cmd(Command cmd){
   }
   
   // fork a child to exec the cmd
-  // pipe
+  // pipe, fd[0] is for reading, fd[1] is for writing
   int pipefd[2];
-  char ls_str[] = "ls_str";
 
   pid = fork();
 
   switch (pid){
   case -1:
+    perror("fork error");
     std::cerr << "fork error" << std::endl;
+    exit(1);
     break;
 
   case 0: // child
@@ -196,9 +152,13 @@ int get_cmd(){
 
 
 
-int main(){
+int main(int argc, char *argv[], char *envp[]){
   // set PATH
-  char default_path[] = "PATH=bin:.";
+<<<<<<< HEAD
+  
+=======
+  char default_path[] = "PATH=./bin:.";
+>>>>>>> a7af6ab54e8c5e159df55194881789e9ab6f930a
   putenv(default_path);
 
   int status;
