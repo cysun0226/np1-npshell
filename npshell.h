@@ -20,6 +20,7 @@ typedef struct {
     int pipe_in = -1;
     int pipe_out = -1;
     int idx = -1;
+    int pipe_idx;
     // copy constructor
     // Command() : (c.n) { } // user-definced copy ctor
 } Command;
@@ -31,6 +32,11 @@ std::ostream& operator<< (std::ostream &o, const Command &c){
                << "pipe_in   = " << c.pipe_in   << " | "
                << "pipe_out  = " << c.pipe_out;
 } 
+
+typedef struct {
+    int fd[];
+    int instr_cnt_down;
+} Pipe;
 
 int count_digit(int n){
   int cnt = 0;

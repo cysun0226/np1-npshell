@@ -98,21 +98,23 @@ int exec_cmd(Command cmd, int io_fd[]){
     if (cmd.idx == 0){ // first instr 
       std::cout << "[first cmd]" << std::endl;
       // dup2(io_fd[pipe_id*2+WRITE], STDOUT_FILENO); // dup stdout to pipe_id
-      // close(io_fd[pipe_id*2+READ]);
+      close(io_fd[READ]);
+      dup2(io_fd[WRITE], STDOUT_FILENO); // dup stdout to pipe_id
       // close(io_fd[pipe_id*2+WRITE]);
     }
     else if(cmd.idx == -1){ // last instr
       std::cout << "[last cmd]" << std::endl;
-      // dup2(io_fd[0*2+READ], STDIN_FILENO); // dup pipe of 1 to in
+      close(io_fd[WRITE]);
+      dup2(io_fd[READ], STDIN_FILENO); // dup pipe of 1 to in
       // close(io_fd[WRITE]);
       // close(io_fd[READ]);
     }
     else{
       std::cout << "[middle cmd]" << std::endl;
-      // dup2(io_fd[READ], STDIN_FILENO); // dup stdin to in
-      // dup2(io_fd[WRITE], STDOUT_FILENO); // dup output to stdout
+      dup2(io_fd[READ], STDIN_FILENO); // dup stdin to in
+      dup2(io_fd[WRITE], STDOUT_FILENO); // dup output to stdout
       // close(io_fd[WRITE]);
-      // close(io_fd[READ]);
+      close(io_fd[READ]);
     }
 
     if (cmd.in_file == ""){
@@ -121,13 +123,16 @@ int exec_cmd(Command cmd, int io_fd[]){
     else{
       status = execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), cmd.in_file.c_str(), NULL);
     }
-    
+
     std::cerr << "unknown command" << std::endl;
     exit(1);
     break;
   
   default: // pid > 0, parent
     std::cout << "I'm parent, wait for child" << std::endl;
+    if(cmd.idx != 0){
+      close(io_fd[WRITE]);
+    }
     waitpid(pid, &status, 0);
     // wait(&status);
 
@@ -139,6 +144,13 @@ int exec_cmd(Command cmd, int io_fd[]){
   return status;
 }
 
+int exec_cmds(std::vector<Command> cmds){
+  // create pipes for |
+
+  // create pipes for |n
+  // after using, push into the global vector
+
+}
 
 int get_cmd(){
   int status = 0;
