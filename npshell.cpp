@@ -1,16 +1,11 @@
 # include "npshell.h"
 
-Command parse_cmd(std::string cmd_str){
-
-}
-
-
-
 std::vector<Command> parse_cmds(std::string usr_ipt){
   std::vector<Command> cmds;
   std::string out_file = "";
   char usr_input[15000];
   strcpy(usr_input, usr_ipt.c_str());
+  int idx = 0;
   
   // seperate command by pipe
   char* ptr = strtok(usr_input, "|");
@@ -61,7 +56,10 @@ std::vector<Command> parse_cmds(std::string usr_ipt){
     if (!cmd_stream.fail()){
       cmd.in_file = i_file;
     }
-    
+
+    cmd.idx = idx;
+    idx++;
+
     cmds.push_back(cmd);
 
     // if no any pipe symbol
@@ -71,22 +69,20 @@ std::vector<Command> parse_cmds(std::string usr_ipt){
     ptr = strtok(ptr+strlen(ptr)+1, "|");
   }
 
+  cmds.back().idx = -1;
   return cmds;
 }
 
-int exec_cmd(Command cmd){
+int exec_cmd(Command cmd, int io_fd[]){
   int status;
   pid_t pid;
+  int pipe_id = 0;
 
   // check if exit
   if (cmd.cmd == "exit"){
     return EXIT;
   }
   
-  // fork a child to exec the cmd
-  // pipe, fd[0] is for reading, fd[1] is for writing
-  int pipefd[2];
-
   pid = fork();
 
   switch (pid){
@@ -98,26 +94,42 @@ int exec_cmd(Command cmd){
 
   case 0: // child
     std::cout << "I'm child process, exec " << cmd.cmd << std::endl;
-    // dup2(pipefd[1], STDOUT_FILENO);
-    // close(pipefd[0]);
-    // close(pipefd[1]);
-    // status = execlp(cmd.cmd.c_str(), cmd.in_file.c_str(), NULL);
-    status = execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), cmd.in_file.c_str(), NULL);
-    std::cout << "unknown command" << std::endl;
-    exit(0);
+    std::cout << "in_file = " << cmd.in_file << std::endl;
+    if (cmd.idx == 0){ // first instr 
+      std::cout << "[first cmd]" << std::endl;
+      // dup2(io_fd[pipe_id*2+WRITE], STDOUT_FILENO); // dup stdout to pipe_id
+      // close(io_fd[pipe_id*2+READ]);
+      // close(io_fd[pipe_id*2+WRITE]);
+    }
+    else if(cmd.idx == -1){ // last instr
+      std::cout << "[last cmd]" << std::endl;
+      // dup2(io_fd[0*2+READ], STDIN_FILENO); // dup pipe of 1 to in
+      // close(io_fd[WRITE]);
+      // close(io_fd[READ]);
+    }
+    else{
+      std::cout << "[middle cmd]" << std::endl;
+      // dup2(io_fd[READ], STDIN_FILENO); // dup stdin to in
+      // dup2(io_fd[WRITE], STDOUT_FILENO); // dup output to stdout
+      // close(io_fd[WRITE]);
+      // close(io_fd[READ]);
+    }
+
+    if (cmd.in_file == ""){
+      status = execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), NULL);
+    }
+    else{
+      status = execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), cmd.in_file.c_str(), NULL);
+    }
+    
+    std::cerr << "unknown command" << std::endl;
+    exit(1);
     break;
   
   default: // pid > 0, parent
     std::cout << "I'm parent, wait for child" << std::endl;
-    // close(pipefd[1]);
-    // char pipe_buffer[PIPE_BUFFER_SIZE];
-    // int char_n = read(pipefd[0], pipe_buffer, sizeof(pipe_buffer));
-    // std::cout << pipe_buffer << std::endl;
-    wait(&status);
-    // pid_t tpid;
-    // do {
-    //    tpid = wait(&status);
-    //  } while(tpid != pid);
+    waitpid(pid, &status, 0);
+    // wait(&status);
 
     std::cout << "catch child, status=" << status << std::endl;
     status = SUCCESS;
@@ -141,8 +153,14 @@ int get_cmd(){
   cmds = parse_cmds(usr_input);
 
   // exec
+  // fork a child to exec the cmd
+  // pipe, fd[0] is for reading, fd[1] is for writing
+  int io_fd[4];
+  int err_fd[4];
+  int pipe_id = 0;
+  pipe(io_fd);
   for (size_t i = 0; i < cmds.size(); i++){
-    status = exec_cmd(cmds[i]);
+    status = exec_cmd(cmds[i], io_fd);
   }
   // return exec status
 
@@ -154,11 +172,7 @@ int get_cmd(){
 
 int main(int argc, char *argv[], char *envp[]){
   // set PATH
-<<<<<<< HEAD
-  
-=======
-  char default_path[] = "PATH=./bin:.";
->>>>>>> a7af6ab54e8c5e159df55194881789e9ab6f930a
+  char default_path[] = "PATH=bin:.";
   putenv(default_path);
 
   int status;

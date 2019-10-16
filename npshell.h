@@ -11,6 +11,7 @@
 #define PROMPT_SYMBOL "%" 
 #define PIPE_BUFFER_SIZE 15000
 enum Status{SUCCESS, EXIT, ERROR};
+enum {READ, WRITE};
 
 typedef struct {
     std::string cmd;
@@ -18,7 +19,7 @@ typedef struct {
     std::string out_file = "";
     int pipe_in = -1;
     int pipe_out = -1;
-
+    int idx = -1;
     // copy constructor
     // Command() : (c.n) { } // user-definced copy ctor
 } Command;

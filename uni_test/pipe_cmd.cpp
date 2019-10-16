@@ -6,7 +6,7 @@
 #include <iostream>
 #include "npshell.h"
 
-enum{READ, WRITE};
+
 
 
 
@@ -25,16 +25,19 @@ int main() {
     // pipe_id = 1;
     if (pid == 0){
         int pipe_id = 0;
-        dup2(fd[pipe_id*2+WRITE], STDOUT_FILENO); // dup stdout to pipe_id
+        // close(fd[pipe_id*2+WRITE]);
         close(fd[pipe_id*2+READ]);
-        close(fd[pipe_id*2+WRITE]);
+        dup2(fd[pipe_id*2+WRITE], STDOUT_FILENO); // dup stdout to pipe_id
+        
+        
         execlp("bin/cat", "bin/cat", "test.html", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
     
     int status;
-    waitpid(pid, &status, WNOHANG); 
+    waitpid(pid, &status, 0); 
+    // waitpid(pid, &status, WNOHANG); 
     // WNOHANG: return immediately if no child has exited. 
     //          to handle child first
 
@@ -54,24 +57,27 @@ int main() {
     }
 
         
-    waitpid(pid2, &status, WNOHANG);
+    waitpid(pid2, &status, 0); 
+    // waitpid(pid2, &status, WNOHANG);
     std::cout << "parent catch child 2" << std::endl;    
+    std::cout.flush();
 
     // child3
     pid_t pid3;
     pid3 = fork();
     if (pid3 == 0){
+        int pipe_id = 1;
         dup2(fd[0*2+READ], STDIN_FILENO); // dup pipe of 1 to in
-        // dup2(fd[READ], STDIN_FILENO);
-        close(fd[WRITE]);
-        close(fd[READ]);
+        dup2(fd[pipe_id*2+WRITE], STDOUT_FILENO);
+        close(fd[pipe_id*2+READ]);
+        close(fd[pipe_id*2+WRITE]);
         execlp("bin/number", "bin/number", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
-
-        
-    waitpid(pid3, &status, WNOHANG);
+    
+    waitpid(pid3, &status, 0); 
+    // waitpid(pid3, &status, WNOHANG);
     std::cout << "parent catch child 3" << std::endl;    
     
     return 0;
