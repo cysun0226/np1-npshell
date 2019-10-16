@@ -12,6 +12,7 @@
 #define PIPE_BUFFER_SIZE 15000
 enum Status{SUCCESS, EXIT, ERROR};
 enum {READ, WRITE};
+enum {PIPE_STDOUT=-1};
 
 typedef struct {
     std::string cmd;
@@ -19,8 +20,11 @@ typedef struct {
     std::string out_file = "";
     int pipe_in = -1;
     int pipe_out = -1;
+    int* in_fd;
+    int out_fd[];
     int idx = -1;
     int pipe_idx;
+    std::vector<std::string> args;
     // copy constructor
     // Command() : (c.n) { } // user-definced copy ctor
 } Command;
@@ -34,7 +38,7 @@ std::ostream& operator<< (std::ostream &o, const Command &c){
 } 
 
 typedef struct {
-    int fd[];
+    int* fd;
     int instr_cnt_down;
 } Pipe;
 
@@ -54,3 +58,5 @@ bool is_number(std::string s) {
   }
   return is_num;
 }
+
+// std::vector<Command> parse_cmds(std::string usr_ipt);

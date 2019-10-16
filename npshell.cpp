@@ -1,4 +1,4 @@
-# include "npshell.h"
+# include "npshell.h" 
 
 std::vector<Command> parse_cmds(std::string usr_ipt){
   std::vector<Command> cmds;
@@ -72,6 +72,7 @@ std::vector<Command> parse_cmds(std::string usr_ipt){
   cmds.back().idx = -1;
   return cmds;
 }
+
 
 int exec_cmd(Command cmd, int io_fd[]){
   int status;
