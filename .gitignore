@@ -3,3 +3,9 @@ bin/*
 *.html
 npshell
 .vscode/
+README.md
+uni_test/bin/
+uni_test/npshell.h
+uni_test/pipe_cmd
+uni_test/pipe_test
+uni_test/vector_test
