@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <wait.h>
 #include <iostream>
-#include "npshell.h"
+#include "../npshell.h"
 #include <vector>
 
 
@@ -102,7 +102,7 @@ int main() {
 
     for (size_t i = 0; i < 4; i++){
         wait(&status);    
-        std::cout << "parent catch child" << std::endl;
+        // std::cout << "parent catch child" << std::endl;
     }
     
     return 0;
