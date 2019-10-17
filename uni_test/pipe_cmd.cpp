@@ -65,7 +65,7 @@ int main() {
     if (pid3 == 0){
         // waitpid(pid2, &status, 0); 
         
-        dup2(fd[1][READ], STDIN_FILENO); // dup pipe of 1 to in
+        // dup2(fd[2][WRITE], STDOUT_FILENO); // dup stdin to in
 
         for (size_t i = 0; i < 2; i++){
             close(fd[i][READ]);
@@ -104,6 +104,8 @@ int main() {
         wait(&status);    
         // std::cout << "parent catch child" << std::endl;
     }
+
+
     
     return 0;
 }
