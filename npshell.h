@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <utility>
 
 #define PROMPT_SYMBOL "%" 
 #define PIPE_BUFFER_SIZE 15000
@@ -19,7 +20,7 @@ typedef struct {
     std::string in_file = "";
     std::string out_file = "";
     int pipe_in = -1;
-    int pipe_out = -1;
+    int pipe_out = PIPE_STDOUT;
     int in_fd = STDIN_FILENO;
     int out_fd = STDOUT_FILENO;
     int idx = -1;
@@ -38,8 +39,8 @@ std::ostream& operator<< (std::ostream &o, const Command &c){
 } 
 
 typedef struct {
-    int fd[2];
-    int instr_cnt_down;
+    int* fd;
+    int out_target;
 } Pipe;
 
 int count_digit(int n){
