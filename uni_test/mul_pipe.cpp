@@ -73,6 +73,10 @@ int exec_cmd(Command cmd){
   return status;
 }
 
+void build_pipe(std::vector<Command> cmds, int std_pipe_num, int relay_pipe_num){
+
+}
+
 int main() {
     // set PATH
     char default_path[] = "PATH=bin:.";
@@ -139,7 +143,6 @@ int main() {
                 break;
             if (cmds[i].idx == cmds[j].pipe_out && cmds[j].out_fd!=STDOUT_FILENO)
                 cmds[i].in_fd = relay_pipe[cmds[j].pipe_idx][READ];
-                // cmds[i].in_fd = cmds[j].out_fd;
         }
     }
 
@@ -154,10 +157,15 @@ int main() {
     wait(&status);
 
     // delete array
-    // for(int i = 0; i < sizeY; ++i) {
-    //     delete [] ary[i];
-    // }
-    // delete [] ary;
+    for(int i = 0; i < std_pipe_num; ++i) {
+        delete [] std_pipe[i];
+    }
+    delete [] std_pipe;
+
+    for(int i = 0; i < relay_pipe_num; ++i) {
+        delete [] relay_pipe[i];
+    }
+    delete [] relay_pipe;
     
     return 0;
 }
