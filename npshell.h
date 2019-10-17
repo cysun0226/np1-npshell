@@ -23,6 +23,7 @@ typedef struct {
     int pipe_out = PIPE_STDOUT;
     int in_fd = STDIN_FILENO;
     int out_fd = STDOUT_FILENO;
+    std::vector<int*> relate_pipe;
     int idx = -1;
     int pipe_idx;
     std::vector<std::string> args;

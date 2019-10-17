@@ -33,7 +33,7 @@ void child_handler(int signo){
     while (waitpid(-1, &status, WNOHANG) > 0);
 }
 
-int exec_cmd(Command cmd){
+pid_t exec_cmd(Command cmd, std::vector<int*> &fd_list){
   int status;
   pid_t pid;
   int pipe_id = 0;
@@ -54,11 +54,42 @@ int exec_cmd(Command cmd){
 
   case 0: // child
     // std::cout << "I'm child process, exec " << cmd.cmd << " " << cmd.args[0] << std::endl;
-    if (cmd.in_fd != STDIN_FILENO)
-        dup2(cmd.in_fd, STDIN_FILENO);
+    // std::cerr << "I'm child process, exec " << cmd.cmd << " " << cmd.args[0] << std::endl;
+
+    // if (cmd.in_fd != STDIN_FILENO){
+      // std::cerr << "I'm child process " << cmd.cmd << " dup in " << std::endl;
+      dup2(cmd.in_fd, STDIN_FILENO);
+      // close(cmd.in_fd);
+    // }
         
-    if (cmd.out_fd != STDOUT_FILENO)
-        dup2(cmd.out_fd, STDOUT_FILENO);
+    // if (cmd.out_fd != STDOUT_FILENO){
+      // std::cerr << "I'm child process " << cmd.cmd << " dup out " << std::endl;
+      dup2(cmd.out_fd, STDOUT_FILENO);
+      // dup(cmd.out_fd);
+      // close(cmd.out_fd);
+    // }
+
+    // std::cerr << "I'm process " << cmd.idx << " " << cmd.cmd << ", close " << cmd.relate_pipe.size() << " fd " << std::endl;
+
+    // for (size_t i = 0; i < cmd.relate_pipe.size(); i++){
+    //   close(cmd.relate_pipe[i][READ]);
+    //   close(cmd.relate_pipe[i][WRITE]);
+    // }
+
+    for (size_t i = 0; i < fd_list.size(); i++){
+      close(fd_list[i][READ]);
+      close(fd_list[i][WRITE]);
+    }
+    
+
+    // for (size_t i = 0; i < cmds.size(); i++){
+    //   close(cmds[i].in_fd);
+    //   // if (cmds[i].out_fd != STDOUT_FILENO){
+    //     close(cmds[i].out_fd);
+    //   // }
+    // }
+    
+        
 
     // TODO modify arg to []
     if (cmd.args[0] == ""){
@@ -73,32 +104,45 @@ int exec_cmd(Command cmd){
     break;
   
   default: // pid > 0, parent
-    close(cmd.in_fd);
-    if (cmd.out_fd != STDOUT_FILENO)
-        close(cmd.out_fd);
+    // close(cmd.in_fd);
+    // if (cmd.out_fd != STDOUT_FILENO)
+    //     close(cmd.out_fd);
 
     // wait for the last command
     int status;
-    if (cmd.out_fd == STDOUT_FILENO)
-        waitpid(pid, &status, 0);
+    if (cmd.out_fd != STDOUT_FILENO){
+      signal(SIGCHLD, child_handler);
+    }
+
+    // if (cmd.out_fd == STDOUT_FILENO){
+    //   for (size_t i = 0; i < cmds.size(); i++){
+    //     close(cmds[i].in_fd);
+    //     if (cmds[i].out_fd != STDOUT_FILENO){
+    //       close(cmds[i].out_fd);
+    //     }
+    //   }
+    //   waitpid(pid, &status, 0);
+    // }
+        
     // use signal handler to catch child
-    else
-        signal(SIGCHLD, child_handler);
+        
 
     status = SUCCESS;
     break;
   }
 
-  return status;
+  return pid;
 }
 
-void build_pipe(std::vector<Command> &cmds){
+std::vector<int*> build_pipe(std::vector<Command> &cmds){
+  std::vector<int*> fd_list;
   /* Check if previous pipe occurs */
   for (size_t i = 0; i < cmds.size(); i++){
     for (size_t p = 0; p < pipe_table.size(); p++){
       // exist pipe to stdin
       if (pipe_table[p].out_target ==  cmds[i].idx){
           cmds[i].in_fd = pipe_table[p].fd[READ];
+          cmds[i].relate_pipe.push_back(pipe_table[p].fd);
           std::pair <int*, int> table_entry(pipe_table[p].fd, p);
           // can delete after used
           table_delete.push_back(table_entry);
@@ -106,47 +150,67 @@ void build_pipe(std::vector<Command> &cmds){
       // output target has existing pipe
       if (cmds[i].pipe_out == pipe_table[p].out_target){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
+          cmds[i].relate_pipe.push_back(pipe_table[p].fd);
       }
     }
   }
 
   /* Create required new pipes */
   for (size_t i = 0; i < cmds.size(); i++){
-      // allocate new pipe
-      int* fd = new int[2];
-      if (pipe(fd) < 0){
-          std::cerr << "[pipe error]" << cmds[i].cmd << std::endl;
-          break;
-      }
-      
       // no previous existing pipe for next command
       if (cmds[i].pipe_out == PIPE_STDOUT &&
           cmds[i].out_fd == STDOUT_FILENO &&
           cmds[i+1].in_fd == STDIN_FILENO &&
           i != cmds.size()-1)  // the last command use stdout
       {
+          // allocate new pipe
+          int* fd = new int[2];
+          if (pipe(fd) < 0){
+              std::cerr << "[pipe error]" << cmds[i].cmd << std::endl;
+              break;
+          }
+          
           cmds[i].out_fd = fd[WRITE];
+          cmds[i].relate_pipe.push_back(fd);
           cmds[i+1].in_fd = fd[READ];
+          cmds[i+1].relate_pipe.push_back(fd);
+          // append from before
+          for (size_t j = 0; j < cmds[i].relate_pipe.size(); j++){
+            cmds[i+1].relate_pipe.push_back(cmds[i].relate_pipe[j]);
+          }
+          fd_list.push_back(fd);
           tmp_delete.push_back(fd);
       }      
 
       // no existing pipe for the output target
       if (cmds[i].pipe_out != PIPE_STDOUT && cmds[i].out_fd == STDOUT_FILENO){
+          // allocate new pipe
+          int* fd = new int[2];
+          if (pipe(fd) < 0){
+              std::cerr << "[pipe error]" << cmds[i].cmd << std::endl;
+              break;
+          }
+          fd_list.push_back(fd);
+
           cmds[i].out_fd = fd[WRITE];
+          cmds[i].relate_pipe.push_back(fd);
           // output target is in the current cmds
           if (cmds[i].pipe_out < cmds.size()-cmds[i].idx){
               cmds[i+cmds[i].pipe_out].in_fd = fd[READ];
+              cmds[i+cmds[i].pipe_out].relate_pipe.push_back(fd);
               tmp_delete.push_back(fd);
               // redirct all cmd.out_fd that output to the same cmd
               for (size_t j = i+1; j<cmds.size(); j++){
                 if (cmds[j].pipe_out != PIPE_STDOUT){
                   if (cmds[j].pipe_out + cmds[j].idx == cmds[i].pipe_out+cmds[i].idx){
-                    cmds[j].out_fd = cmds[i].out_fd;      
+                    cmds[j].out_fd = cmds[i].out_fd;
+                    cmds[j].relate_pipe.push_back(fd);
                   }
                 }
                 else{
                   if (cmds[i].idx+cmds[i].pipe_out==cmds[j].idx+1){
                     cmds[j].out_fd = cmds[i].out_fd;
+                    cmds[j].relate_pipe.push_back(fd);          
                   } 
                 }
               }
@@ -160,18 +224,29 @@ void build_pipe(std::vector<Command> &cmds){
           }
       }
   }
+  return fd_list;
 }
 
 int exec_cmds(std::vector<Command> cmds){
     int status;
+    pid_t last_pid;
 
     // build pipes
-    build_pipe(cmds);
+    std::vector<int*> fd_list = build_pipe(cmds);
 
     // execute commands
     for (size_t i = 0; i < cmds.size(); i++){
-        status = exec_cmd(cmds[i]);
+        last_pid = exec_cmd(cmds[i], fd_list);
     }
+
+    for (size_t i = 0; i < fd_list.size(); i++){
+      close(fd_list[i][READ]);
+      close(fd_list[i][WRITE]);
+    }
+
+    waitpid(last_pid, &status, 0);
+    
+    
     
     // delete tmp pipes for current cmds
     for (size_t i = 0; i < tmp_delete.size(); i++){
@@ -216,7 +291,7 @@ int main() {
     int pipe_out2[] = { -1, -1, -1 };
     
     std::vector<Command> cmds2 = create_cmds(cmds_str_2, args_2, pipe_out2, 3);
-    int status2 = exec_cmds(cmds2);
+    // int status2 = exec_cmds(cmds2);
 
     
     

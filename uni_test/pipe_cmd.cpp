@@ -29,6 +29,9 @@ int main() {
     if (pid == 0){
         
         dup2(fd[0][WRITE], STDOUT_FILENO); // dup stdout to pipe_id
+        
+        close(fd[0][WRITE]);
+        close(fd[0][READ]);
 
         for (size_t i = 0; i < 2; i++){
             close(fd[i][READ]);
@@ -46,15 +49,18 @@ int main() {
     pid_t pid2;
     pid2 = fork();
     if (pid2 == 0){
-        dup2(fd[0][READ], STDIN_FILENO); // dup output to stdout
-        dup2(fd[1][WRITE], STDOUT_FILENO); // dup stdin to in
+        dup2(fd[0][WRITE], STDOUT_FILENO); // dup stdin to in
+
+        close(fd[0][WRITE]);
+        close(fd[0][READ]);
 
         for (size_t i = 0; i < 2; i++){
             close(fd[i][READ]);
             close(fd[i][WRITE]);
         }  
         
-        execlp("bin/number", "bin/number", (char*) NULL);
+        execlp("bin/ls", "bin/ls", "-l", (char*) NULL);
+        // execlp("bin/number", "bin/number", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
@@ -65,15 +71,23 @@ int main() {
     if (pid3 == 0){
         // waitpid(pid2, &status, 0); 
         
-        // dup2(fd[2][WRITE], STDOUT_FILENO); // dup stdin to in
+        dup2(fd[0][READ], STDIN_FILENO); // dup stdin to in
+        dup2(fd[1][WRITE], STDOUT_FILENO); // dup stdin to in
+
+        close(fd[0][READ]);
+        close(fd[0][WRITE]);
+        close(fd[1][READ]);
+        close(fd[1][WRITE]);
 
         for (size_t i = 0; i < 2; i++){
             close(fd[i][READ]);
             close(fd[i][WRITE]);
         }  
+
         
         // std::cout << "I'm child 3" << std::endl;
-        execlp("bin/ls", "bin/ls", "-l", (char*) NULL);
+        // execlp("bin/ls", "bin/ls", "-l", (char*) NULL);
+        execlp("bin/number", "bin/number", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
@@ -83,6 +97,11 @@ int main() {
     pid4 = fork();
     if (pid4 == 0){       
         dup2(fd[1][READ], STDIN_FILENO); // dup pipe of 1 to in
+
+        close(fd[1][READ]);
+        close(fd[1][WRITE]);
+        close(fd[0][READ]);
+        close(fd[0][WRITE]);
 
         for (size_t i = 0; i < 2; i++){
             close(fd[i][READ]);
