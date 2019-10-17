@@ -74,11 +74,12 @@ int exec_cmd(Command cmd){
   
   default: // pid > 0, parent
     close(cmd.in_fd);
-    close(cmd.out_fd);
+    if (cmd.out_fd != STDOUT_FILENO)
+        close(cmd.out_fd);
 
     // wait for the last command
     int status;
-    if (cmd.pipe_out == STDOUT_FILENO)
+    if (cmd.out_fd == STDOUT_FILENO)
         waitpid(pid, &status, 0);
     // use signal handler to catch child
     else
