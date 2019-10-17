@@ -20,8 +20,8 @@ typedef struct {
     std::string out_file = "";
     int pipe_in = -1;
     int pipe_out = -1;
-    int* in_fd;
-    int out_fd[];
+    int in_fd = STDIN_FILENO;
+    int out_fd = STDOUT_FILENO;
     int idx = -1;
     int pipe_idx;
     std::vector<std::string> args;
@@ -38,7 +38,7 @@ std::ostream& operator<< (std::ostream &o, const Command &c){
 } 
 
 typedef struct {
-    int* fd;
+    int fd[2];
     int instr_cnt_down;
 } Pipe;
 
