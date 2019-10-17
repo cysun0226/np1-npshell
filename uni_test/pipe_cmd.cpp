@@ -32,11 +32,6 @@ int main() {
         
         close(fd[0][WRITE]);
         close(fd[0][READ]);
-
-        for (size_t i = 0; i < 2; i++){
-            close(fd[i][READ]);
-            close(fd[i][WRITE]);
-        }  
         
         execlp("bin/cat", "bin/cat", "test.html", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
@@ -49,21 +44,23 @@ int main() {
     pid_t pid2;
     pid2 = fork();
     if (pid2 == 0){
-        dup2(fd[0][WRITE], STDOUT_FILENO); // dup stdin to in
+        // dup2(fd[0][WRITE], STDOUT_FILENO); // dup stdin to in
 
-        close(fd[0][WRITE]);
-        close(fd[0][READ]);
+        // close(fd[0][WRITE]);
+        // close(fd[0][READ]);
 
-        for (size_t i = 0; i < 2; i++){
-            close(fd[i][READ]);
-            close(fd[i][WRITE]);
-        }  
+        // for (size_t i = 0; i < 2; i++){
+        //     close(fd[i][READ]);
+        //     close(fd[i][WRITE]);
+        // }  
         
         execlp("bin/ls", "bin/ls", "-l", (char*) NULL);
         // execlp("bin/number", "bin/number", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
+
+    waitpid(pid2, &status, 0);
 
     // child3
     pid_t pid3;
@@ -83,7 +80,6 @@ int main() {
             close(fd[i][READ]);
             close(fd[i][WRITE]);
         }  
-
         
         // std::cout << "I'm child 3" << std::endl;
         // execlp("bin/ls", "bin/ls", "-l", (char*) NULL);
@@ -114,12 +110,34 @@ int main() {
         exit(1);
     }
 
+    // child5
+    pid_t pid5;
+    pid5 = fork();
+    if (pid4 == 0){       
+        dup2(fd[1][READ], STDIN_FILENO); // dup pipe of 1 to in
+
+        close(fd[1][READ]);
+        close(fd[1][WRITE]);
+        close(fd[0][READ]);
+        close(fd[0][WRITE]);
+
+        for (size_t i = 0; i < 2; i++){
+            close(fd[i][READ]);
+            close(fd[i][WRITE]);
+        }  
+        
+        // std::cout << "I'm child 3" << std::endl;
+        execlp("bin/number", "bin/number", (char*) NULL);
+        std::cerr << "execute failed" << std::endl;
+        exit(1);
+    }
+
     for (size_t i = 0; i < 2; i++){
             close(fd[i][READ]);
             close(fd[i][WRITE]);
     }  
 
-    for (size_t i = 0; i < 4; i++){
+    for (size_t i = 0; i < 3; i++){
         wait(&status);    
         // std::cout << "parent catch child" << std::endl;
     }
