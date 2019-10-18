@@ -24,6 +24,54 @@ std::vector<Command> create_cmds(std::string* cmds_str,
     return cmds;
 }
 
+std::pair <std::vector<Command>, std::string> parse_cmd(std::string usr_input) {
+    std::vector<Command> cmds;
+    std::string out_file = "";
+    std::stringstream ss;
+    ss.str(usr_input);
+    // ss.exceptions(std::ios::failbit);
+    std::vector<std::string> buf;
+    std::string str;
+    int idx = 0;
+    while(ss >> str){
+        if (str[0] == '|' || str[0] == '!' || str[0] == '>'){
+            Command cmd;
+            cmd.idx = idx; idx++;
+            cmd.fd_type = str[0];
+            // the pipe out idx
+            if (str.size()>1){
+                cmd.pipe_out = std::stoi(str.substr(1));
+            }
+            cmd.cmd = buf[0];
+            for (size_t i = 0; i < buf.size(); i++){
+                cmd.args.push_back(buf[i]);
+            }
+            if (str[0] == '>'){
+                ss >> out_file;
+            }   
+            cmds.push_back(cmd);
+            buf.clear();
+        }
+        else{
+            buf.push_back(str);
+        }
+    }
+
+    // last cmd (to stdout)
+    if (buf.size() > 0){
+        Command cmd;
+        cmd.idx = idx; idx++;
+        cmd.fd_type = '-';
+        cmd.cmd = buf[0];
+        for (size_t i = 0; i < buf.size(); i++){
+            cmd.args.push_back(buf[i]);
+        }
+        cmds.push_back(cmd);
+    }
+    
+    return std::pair<std::vector<Command>, std::string>(cmds, out_file);
+}
+
 std::vector<Pipe> pipe_table;
 std::vector< std::pair <int*, int> > table_delete;
 std::vector<int*> tmp_delete;
@@ -44,10 +92,6 @@ pid_t exec_cmd(Command cmd, std::vector<int*> &fd_list){
   if (cmd.cmd == "exit"){
     return EXIT;
   }
-
-  
-
-  
   
   pid = fork();
 
@@ -76,16 +120,16 @@ pid_t exec_cmd(Command cmd, std::vector<int*> &fd_list){
     }
     
     // convert cmd.args to exec format
-    const char *p_name = cmd.cmd.c_str();
-    const char **args = new const char* [cmd.args.size()+2];
-    args[0] = p_name;
+    // const char *p_name = cmd.cmd.c_str();
+    const char **args = new const char* [cmd.args.size()+1];
+    // args[0] = p_name;
     for (int i = 0; i < cmd.args.size(); i++){
-        args [i+1] = cmd.args[i].c_str();
+        args[i] = cmd.args[i].c_str();
     }   
-    args[cmd.args.size()+1] = NULL;
+    args[cmd.args.size()] = NULL;
 
     // execute    
-    status = execvp(cmd.cmd.c_str(), (char**)args); // process name, args
+    status = execvp(args[0], (char**)args); // process name, args
 
     exit(status);
     break;
@@ -225,19 +269,6 @@ int exec_cmds(std::vector<Command> cmds){
     for (size_t i = 0; i < cmds.size(); i++){
         last_pid = exec_cmd(cmds[i], fd_list);
     }
-
-    // for (size_t i = 0; i < tmp_delete.size(); i++){      
-    //   close(tmp_delete[i][READ]);
-    //   close(tmp_delete[i][WRITE]);
-    // }
-
-    // for (size_t i = 0; i < table_delete.size(); i++){
-    //   close(table_delete[i].first[READ]);
-    //   close(table_delete[i].first[WRITE]);
-    // }
-
-    // if(cmds.back().out_fd == STDOUT_FILENO)  
-    //   waitpid(last_pid, &status, 0);
     
     // delete tmp pipes for current cmds
     for (size_t i = 0; i < tmp_delete.size(); i++){
@@ -267,31 +298,28 @@ int main() {
     // set PATH
     char default_path[] = "PATH=bin:.";
     putenv(default_path);
-    /* sample */
-    // cat test.html |5 ls -l |6 cat test.html | number | number
-    // std::string cmds_str[] = {"cat", "ls -l", "cat", "number", "number"};
-    // std::string args[] = {"cat", "ls -l", "cat", "number", "number"};
-    // int pipe_out[] = {5, 6, -1, -1, -1};
-    std::string cmds_str[] = {"cat", "ls", "removetag", "number", "number"};
-    std::string args[] = {"test.html", "-l", "test.html", "", ""};
-    int pipe_out[] = { 3, 2, 4, -1, -1 };
-
-    std::vector<Command> cmds = create_cmds(cmds_str, args, pipe_out, 5);
-    int status = exec_cmds(cmds);
-
-    std::string cmds_str_2[] = {"cat", "number", "number"};
-    std::string args_2[] = {"test.html", "", "test.html"};
-    int pipe_out2[] = { -1, 3, -1 };
     
-    std::vector<Command> cmds2 = create_cmds(cmds_str_2, args_2, pipe_out2, 3);
-    int status2 = exec_cmds(cmds2);
 
-    std::string cmds_str_3[] = {"removetag", "number"};
-    std::string args_3[] = {"test.html", ""};
-    int pipe_out3[] = { -1, -1};
+    std::string usr_input_1 = "cat test.html |3 ls -l |2\
+     removetag test.html |4 number | number";
+
+    std::pair<std::vector<Command>, std::string> cmds_1 =\
+     parse_cmd(usr_input_1);
     
-    std::vector<Command> cmds3 = create_cmds(cmds_str_3, args_3, pipe_out3, 2);
-    int status3 = exec_cmds(cmds3);
+    int status = exec_cmds(cmds_1.first);
+
+    std::string usr_input_2 = "cat test.html | number |3 \
+     number test.html";
+    std::pair<std::vector<Command>, std::string> cmds_2 =\
+     parse_cmd(usr_input_2);
+    
+    int status2 = exec_cmds(cmds_2.first);
+
+    std::string usr_input_3 = "removetag test.html | number ";
+    std::pair<std::vector<Command>, std::string> cmds_3 =\
+     parse_cmd(usr_input_3);
+
+    int status3 = exec_cmds(cmds_3.first);
 
     
     

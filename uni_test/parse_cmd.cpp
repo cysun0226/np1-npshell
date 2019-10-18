@@ -10,9 +10,11 @@ std::pair <std::vector<Command>, std::string> parse_cmd(std::string usr_input) {
     // ss.exceptions(std::ios::failbit);
     std::vector<std::string> buf;
     std::string str;
+    int idx = 0;
     while(ss >> str){
         if (str[0] == '|' || str[0] == '!' || str[0] == '>'){
             Command cmd;
+            cmd.idx = idx; idx++;
             cmd.fd_type = str[0];
             // the pipe out idx
             if (str.size()>1){
@@ -32,6 +34,18 @@ std::pair <std::vector<Command>, std::string> parse_cmd(std::string usr_input) {
             buf.push_back(str);
         }
     }
+
+    // last cmd (to stdout)
+    if (buf.size() > 0){
+        Command cmd;
+        cmd.idx = idx;
+        cmd.fd_type = '-';
+        cmd.cmd = buf[0];
+        for (size_t i = 0; i < buf.size(); i++){
+            cmd.args.push_back(buf[i]);
+        }
+        cmds.push_back(cmd);
+    }
     
     return std::pair<std::vector<Command>, std::string>(cmds, out_file);
 }
@@ -40,7 +54,7 @@ std::pair <std::vector<Command>, std::string> parse_cmd(std::string usr_input) {
 
 int main(){
     std::string usr_input = "cat test.html |33 ls -l |2\
-     removetag test.html |4 number | number > out.txt";
+     removetag test.html |4 number | number ";
     
     std::pair<std::vector<Command>, std::string> parsed_cmd = parse_cmd(usr_input);
 
