@@ -17,25 +17,18 @@ enum {PIPE_STDOUT=-1};
 
 typedef struct {
     std::string cmd;
-    std::string in_file = "";
     std::string out_file = "";
     int pipe_in = -1;
     int pipe_out = PIPE_STDOUT;
     int in_fd = STDIN_FILENO;
     int out_fd = STDOUT_FILENO;
-    std::vector<int*> relate_pipe;
     int idx = -1;
-    int pipe_idx;
     std::vector<std::string> args;
     char fd_type;
-
-    // copy constructor
-    // Command() : (c.n) { } // user-definced copy ctor
 } Command;
 
 std::ostream& operator<< (std::ostream &o, const Command &c){
       return o << "cmd = " << c.cmd << " | "
-               << "in_file = " << c.in_file << " | "
                << "out_file = " << c.out_file << " | "
                << "pipe_in   = " << c.pipe_in   << " | "
                << "pipe_out  = " << c.pipe_out;
