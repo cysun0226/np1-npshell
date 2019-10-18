@@ -249,7 +249,10 @@ int exec_cmds(std::vector<Command> cmds){
         last_pid = exec_cmd(cmds[i], fd_list);
     }
 
+    std::cerr << "lanuch all the cmd" << std::endl;
+
     for (size_t i = 0; i < tmp_delete.size(); i++){
+      
       close(tmp_delete[i][READ]);
       close(tmp_delete[i][WRITE]);
     }
@@ -259,20 +262,21 @@ int exec_cmds(std::vector<Command> cmds){
       close(table_delete[i].first[WRITE]);
     }
 
-    
-    
+    std::cerr << "close pipes" << std::endl;
 
     // for (size_t i = 0; i < fd_list.size(); i++){
     //   close(fd_list[i][READ]);
     //   close(fd_list[i][WRITE]);
     // }
-
-    waitpid(last_pid, &status, 0);
+    if(cmds.back().out_fd == STDOUT_FILENO)  
+      waitpid(last_pid, &status, 0);
     
+    std::cerr << "stdout child finish" << std::endl;
     
-    
+    std::cerr << "tmp_delete size" << tmp_delete.size() << std::endl;
     // delete tmp pipes for current cmds
     for (size_t i = 0; i < tmp_delete.size(); i++){
+      std::cerr << "delete " << tmp_delete[i][READ] << " " << tmp_delete[i][WRITE] << "\n" << std::endl;
         delete [] tmp_delete[i];
     }
     tmp_delete.clear();
@@ -282,8 +286,10 @@ int exec_cmds(std::vector<Command> cmds){
         // delete fd
         delete[] table_delete[i].first; 
         // delete entry in pipe_table
-        pipe_table.erase(pipe_table.begin()+table_delete[i].second);
+        pipe_table[table_delete[i].second] = pipe_table.back();
+        pipe_table.pop_back();
     }
+    table_delete.clear();
 
     // update out_target in pipe_table
     for (size_t i = 0; i < pipe_table.size(); i++){
@@ -310,11 +316,18 @@ int main() {
     int status = exec_cmds(cmds);
 
     std::string cmds_str_2[] = {"cat", "number", "number"};
-    std::string args_2[] = {"test.html", "", ""};
-    int pipe_out2[] = { -1, -1, -1 };
+    std::string args_2[] = {"test.html", "", "test.html"};
+    int pipe_out2[] = { -1, 3, -1 };
     
     std::vector<Command> cmds2 = create_cmds(cmds_str_2, args_2, pipe_out2, 3);
     int status2 = exec_cmds(cmds2);
+
+    std::string cmds_str_3[] = {"removetag", "number"};
+    std::string args_3[] = {"test.html", ""};
+    int pipe_out3[] = { -1, -1};
+    
+    std::vector<Command> cmds3 = create_cmds(cmds_str_3, args_3, pipe_out3, 2);
+    int status3 = exec_cmds(cmds3);
 
     
     
