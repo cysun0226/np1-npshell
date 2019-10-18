@@ -12,7 +12,9 @@ std::vector<Command> create_cmds(std::string* cmds_str,
         Command cmd;
         cmd.cmd = cmds_str[i];
         std::vector<std::string> arg;
-        arg.push_back(args[i]);
+        if (args[i] != ""){
+            arg.push_back(args[i]);
+        }
         cmd.args = arg;
         cmd.pipe_out = pipe_out[i];
         cmd.idx = i;
@@ -42,98 +44,73 @@ pid_t exec_cmd(Command cmd, std::vector<int*> &fd_list){
   if (cmd.cmd == "exit"){
     return EXIT;
   }
+
+  
+
+  
   
   pid = fork();
 
   switch (pid){
-  case -1:
+  case -1:{
     perror("fork error");
     std::cerr << "fork error" << std::endl;
     exit(1);
     break;
+  }
 
-  case 0: // child
-    // std::cout << "I'm child process, exec " << cmd.cmd << " " << cmd.args[0] << std::endl;
-    // std::cerr << "I'm child process, exec " << cmd.cmd << " " << cmd.args[0] << std::endl;
+  // child
+  case 0:{
+    // reditect I/O
+    dup2(cmd.in_fd, STDIN_FILENO);  
+    dup2(cmd.out_fd, STDOUT_FILENO);
 
-    // if (cmd.in_fd != STDIN_FILENO){
-      // std::cerr << "I'm child process " << cmd.cmd << " dup in " << std::endl;
-      dup2(cmd.in_fd, STDIN_FILENO);  
-      // close(cmd.in_fd);
-    
-        
-    // if (cmd.out_fd != STDOUT_FILENO){
-      // std::cerr << "I'm child process " << cmd.cmd << " dup out " << std::endl;
-      dup2(cmd.out_fd, STDOUT_FILENO);
-      // close(cmd.out_fd);
-    
-
+    // close unuse pipes
     for (size_t i = 0; i < tmp_delete.size(); i++){
       close(tmp_delete[i][READ]);
       close(tmp_delete[i][WRITE]);
     }
-
     for (size_t i = 0; i < table_delete.size(); i++){
       close(table_delete[i].first[READ]);
       close(table_delete[i].first[WRITE]);
     }
     
-    
+    // convert cmd.args to exec format
+    const char *p_name = cmd.cmd.c_str();
+    const char **args = new const char* [cmd.args.size()+2];
+    args[0] = p_name;
+    for (int i = 0; i < cmd.args.size(); i++){
+        args [i+1] = cmd.args[i].c_str();
+    }   
+    args[cmd.args.size()+1] = NULL;
 
-    // for (size_t i = 0; i < cmd.relate_pipe.size(); i++){
-    //   close(cmd.relate_pipe[i][READ]);
-    //   close(cmd.relate_pipe[i][WRITE]);
-    // }
-    
-    
+    // execute    
+    status = execvp(cmd.cmd.c_str(), (char**)args); // process name, args
 
-    // for (size_t i = 0; i < cmds.size(); i++){
-    //   close(cmds[i].in_fd);
-    //   // if (cmds[i].out_fd != STDOUT_FILENO){
-    //     close(cmds[i].out_fd);
-    //   // }
-    // }
-    
-        
-
-    // TODO modify arg to []
-    if (cmd.args[0] == ""){
-      status = execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), NULL);
-    }
-    else{
-      status = execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), cmd.args[0].c_str(), NULL);
-    }
-
-    std::cerr << "unknown command" << std::endl;
     exit(status);
     break;
+  }
   
-  default: // pid > 0, parent
-    // close(cmd.in_fd);
-    // if (cmd.out_fd != STDOUT_FILENO)
-    //     close(cmd.out_fd);
-
-    // wait for the last command
-    int status;
+  // pid > 0, parent
+  default:{
+    // use signal handler to catch child that is not output to stdout
     if (cmd.out_fd != STDOUT_FILENO){
       signal(SIGCHLD, child_handler);
     }
-
-    // if (cmd.out_fd == STDOUT_FILENO){
-    //   for (size_t i = 0; i < cmds.size(); i++){
-    //     close(cmds[i].in_fd);
-    //     if (cmds[i].out_fd != STDOUT_FILENO){
-    //       close(cmds[i].out_fd);
-    //     }
-    //   }
-    //   waitpid(pid, &status, 0);
-    // }
-        
-    // use signal handler to catch child
-        
-
-    status = SUCCESS;
+    else{ // close pipe
+      for (size_t i = 0; i < tmp_delete.size(); i++){      
+        close(tmp_delete[i][READ]);
+        close(tmp_delete[i][WRITE]);
+      }
+      for (size_t i = 0; i < table_delete.size(); i++){
+        close(table_delete[i].first[READ]);
+        close(table_delete[i].first[WRITE]);
+      }
+      // wait for the stdout process
+      waitpid(pid, &status, 0);
+    }
     break;
+  }
   }
 
   return pid;
@@ -249,34 +226,21 @@ int exec_cmds(std::vector<Command> cmds){
         last_pid = exec_cmd(cmds[i], fd_list);
     }
 
-    std::cerr << "lanuch all the cmd" << std::endl;
-
-    for (size_t i = 0; i < tmp_delete.size(); i++){
-      
-      close(tmp_delete[i][READ]);
-      close(tmp_delete[i][WRITE]);
-    }
-
-    for (size_t i = 0; i < table_delete.size(); i++){
-      close(table_delete[i].first[READ]);
-      close(table_delete[i].first[WRITE]);
-    }
-
-    std::cerr << "close pipes" << std::endl;
-
-    // for (size_t i = 0; i < fd_list.size(); i++){
-    //   close(fd_list[i][READ]);
-    //   close(fd_list[i][WRITE]);
+    // for (size_t i = 0; i < tmp_delete.size(); i++){      
+    //   close(tmp_delete[i][READ]);
+    //   close(tmp_delete[i][WRITE]);
     // }
-    if(cmds.back().out_fd == STDOUT_FILENO)  
-      waitpid(last_pid, &status, 0);
+
+    // for (size_t i = 0; i < table_delete.size(); i++){
+    //   close(table_delete[i].first[READ]);
+    //   close(table_delete[i].first[WRITE]);
+    // }
+
+    // if(cmds.back().out_fd == STDOUT_FILENO)  
+    //   waitpid(last_pid, &status, 0);
     
-    std::cerr << "stdout child finish" << std::endl;
-    
-    std::cerr << "tmp_delete size" << tmp_delete.size() << std::endl;
     // delete tmp pipes for current cmds
     for (size_t i = 0; i < tmp_delete.size(); i++){
-      std::cerr << "delete " << tmp_delete[i][READ] << " " << tmp_delete[i][WRITE] << "\n" << std::endl;
         delete [] tmp_delete[i];
     }
     tmp_delete.clear();
