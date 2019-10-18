@@ -27,6 +27,8 @@ typedef struct {
     int idx = -1;
     int pipe_idx;
     std::vector<std::string> args;
+    char fd_type;
+
     // copy constructor
     // Command() : (c.n) { } // user-definced copy ctor
 } Command;
