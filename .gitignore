@@ -11,3 +11,4 @@ uni_test/pipe_test
 uni_test/vector_test
 uni_test/env_var_test
 uni_test/mul_pipe
+uni_test/arg_test
