@@ -83,7 +83,7 @@ void child_handler(int signo){
     while (waitpid(-1, &status, WNOHANG) > 0);
 }
 
-pid_t exec_cmd(Command cmd){
+pid_t exec_cmd(Command cmd, bool last){
   int status;
   pid_t pid;
   int pipe_id = 0;
@@ -111,7 +111,6 @@ pid_t exec_cmd(Command cmd){
     if (cmd.fd_type == '!'){
       dup2(cmd.out_fd, STDERR_FILENO);
     }
-    
 
     // close unuse pipes
     for (size_t i = 0; i < tmp_delete.size(); i++){
@@ -141,11 +140,8 @@ pid_t exec_cmd(Command cmd){
   
   // pid > 0, parent
   default:{
-    // use signal handler to catch child that is not output to stdout
-    if (cmd.out_fd != STDOUT_FILENO){
-      signal(SIGCHLD, child_handler);
-    }
-    else{ // close pipe
+    if (last){
+      // close pipe
       for (size_t i = 0; i < tmp_delete.size(); i++){      
         close(tmp_delete[i][READ]);
         close(tmp_delete[i][WRITE]);
@@ -154,9 +150,17 @@ pid_t exec_cmd(Command cmd){
         close(table_delete[i].first[READ]);
         close(table_delete[i].first[WRITE]);
       }
+    }
+
+    // use signal handler to catch child that is not output to stdout
+    if (cmd.out_fd != STDOUT_FILENO){
+      signal(SIGCHLD, child_handler);
+    }
+    else{
       // wait for the stdout process
       waitpid(pid, &status, 0);
     }
+    
     break;
   }
   }
@@ -260,7 +264,7 @@ int exec_cmds(std::vector<Command> cmds){
 
     // execute commands
     for (size_t i = 0; i < cmds.size(); i++){
-        exec_cmd(cmds[i]);
+        exec_cmd(cmds[i], i==cmds.size()-1);
     }
     
     // delete tmp pipes for current cmds
@@ -296,19 +300,18 @@ int main() {
     // std::string usr_input_1 = "cat test.html |3 ls -l |2\
     //  removetag test.html |4 number | number";
     
-    std::string usr_input_1 = "removetag0 test.html ! number";
+    std::string usr_input_1 = "removetag test.html | number |1";
 
     std::pair<std::vector<Command>, std::string> cmds_1 =\
      parse_cmd(usr_input_1);
     
     int status = exec_cmds(cmds_1.first);
 
-    std::string usr_input_2 = "cat test.html | number |3 \
-     number test.html";
+    std::string usr_input_2 = "number";
     std::pair<std::vector<Command>, std::string> cmds_2 =\
      parse_cmd(usr_input_2);
     
-    // int status2 = exec_cmds(cmds_2.first);
+    int status2 = exec_cmds(cmds_2.first);
 
     std::string usr_input_3 = "removetag test.html | number ";
     std::pair<std::vector<Command>, std::string> cmds_3 =\
