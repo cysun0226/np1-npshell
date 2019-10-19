@@ -1,8 +1,10 @@
 # Todo
-- pipe of stderr (!)
+- [x] pipe of stderr (!)
 - exit (EOF)
 - setenv
-- Makefile
+- [x] Makefile
+- command unknown?
+- check the spec
 
 # Can modify
 - [x] change cmd.cmd to cmd.args[0]
