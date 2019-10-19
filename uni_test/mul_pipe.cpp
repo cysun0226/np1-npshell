@@ -108,6 +108,10 @@ pid_t exec_cmd(Command cmd){
     // reditect I/O
     dup2(cmd.in_fd, STDIN_FILENO);  
     dup2(cmd.out_fd, STDOUT_FILENO);
+    if (cmd.fd_type == '!'){
+      dup2(cmd.out_fd, STDERR_FILENO);
+    }
+    
 
     // close unuse pipes
     for (size_t i = 0; i < tmp_delete.size(); i++){
@@ -289,8 +293,10 @@ int main() {
     putenv(default_path);
     
 
-    std::string usr_input_1 = "cat test.html |3 ls -l |2\
-     removetag test.html |4 number | number";
+    // std::string usr_input_1 = "cat test.html |3 ls -l |2\
+    //  removetag test.html |4 number | number";
+    
+    std::string usr_input_1 = "removetag0 test.html ! number";
 
     std::pair<std::vector<Command>, std::string> cmds_1 =\
      parse_cmd(usr_input_1);
@@ -302,13 +308,13 @@ int main() {
     std::pair<std::vector<Command>, std::string> cmds_2 =\
      parse_cmd(usr_input_2);
     
-    int status2 = exec_cmds(cmds_2.first);
+    // int status2 = exec_cmds(cmds_2.first);
 
     std::string usr_input_3 = "removetag test.html | number ";
     std::pair<std::vector<Command>, std::string> cmds_3 =\
      parse_cmd(usr_input_3);
 
-    int status3 = exec_cmds(cmds_3.first);
+    // int status3 = exec_cmds(cmds_3.first);
 
     
     

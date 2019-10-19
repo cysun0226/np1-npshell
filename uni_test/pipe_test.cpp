@@ -13,6 +13,9 @@
 enum{READ, WRITE};
 
 int main() {
+    char default_path[] = "PATH=bin:.";
+    putenv(default_path);
+
     int in_fd[2];
     int out_fd[2];
     int fd[2];
@@ -28,10 +31,11 @@ int main() {
         // dup2(in_fd[READ], STDIN_FILENO); // dup output to stdout
         close(fd[READ]);
         dup2(fd[WRITE], STDOUT_FILENO);
+        dup2(fd[WRITE], STDERR_FILENO);
         
         // close(fd[WRITE]);
         
-        execlp("ls", "ls", "-l", (char*) NULL);
+        execlp("removetag0", "removetag0", "test.html", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }
@@ -53,7 +57,7 @@ int main() {
         // dup2(fd[WRITE], STDOUT_FILENO);
         // close(fd[READ]);
         
-        execlp("grep", "grep", "cpp", (char*) NULL);
+        execlp("number", "number", (char*) NULL);
         std::cerr << "execute failed" << std::endl;
         exit(1);
     }

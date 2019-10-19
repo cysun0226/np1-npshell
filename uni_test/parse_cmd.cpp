@@ -38,7 +38,7 @@ std::pair <std::vector<Command>, std::string> parse_cmd(std::string usr_input) {
     // last cmd (to stdout)
     if (buf.size() > 0){
         Command cmd;
-        cmd.idx = idx;
+        cmd.idx = idx; idx++;
         cmd.fd_type = '-';
         cmd.cmd = buf[0];
         for (size_t i = 0; i < buf.size(); i++){
