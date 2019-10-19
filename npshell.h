@@ -1,3 +1,6 @@
+#ifndef NPSHELL_H
+#define NPSHELL_H
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -27,33 +30,9 @@ typedef struct {
     char fd_type;
 } Command;
 
-std::ostream& operator<< (std::ostream &o, const Command &c){
-      return o << "cmd = " << c.cmd << " | "
-               << "out_file = " << c.out_file << " | "
-               << "pipe_in   = " << c.pipe_in   << " | "
-               << "pipe_out  = " << c.pipe_out;
-} 
-
 typedef struct {
     int* fd;
     int out_target;
 } Pipe;
 
-int count_digit(int n){
-  int cnt = 0;
-  while (n != 0){
-    n = n/10;
-    cnt ++;
-  }
-  return cnt;
-}
-
-bool is_number(std::string s) {
-  bool is_num = true;
-  for (size_t i = 0; i < s.length(); i++){
-    is_num = isdigit(s[i]);
-  }
-  return is_num;
-}
-
-// std::vector<Command> parse_cmds(std::string usr_ipt);
+#endif
