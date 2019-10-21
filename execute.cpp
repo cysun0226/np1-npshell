@@ -97,7 +97,7 @@ pid_t exec_cmd(Command cmd, bool last){
     }
     else if (last && cmd.fd_type=='>') {
       close(cmd.out_fd);
-      signal(SIGCHLD, child_handler);
+      waitpid(pid, &status, 0);
     }
     else{
       // wait for the stdout process
