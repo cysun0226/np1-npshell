@@ -245,6 +245,20 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds){
           }
           // relay to following commands
           else{
+              // redirct all cmd.out_fd that output to the same cmd
+              for (size_t j = i+1; j<cmds.size(); j++){
+                if (cmds[j].pipe_out != PIPE_STDOUT){
+                  if (cmds[j].pipe_out + cmds[j].idx == cmds[i].pipe_out+cmds[i].idx){
+                    cmds[j].out_fd = cmds[i].out_fd;
+                  }
+                }
+                else{
+                  if (cmds[i].idx+cmds[i].pipe_out==cmds[j].idx+1){
+                    cmds[j].out_fd = cmds[i].out_fd;      
+                  } 
+                }
+              }
+
               // update pipe_out for following commands
               cmds[i].pipe_out += (cmds[i].idx);
               Pipe p = {fd, cmds[i].pipe_out};
@@ -300,7 +314,7 @@ int main() {
     // std::string usr_input_1 = "cat test.html |3 ls -l |2\
     //  removetag test.html |4 number | number";
     
-    std::string usr_input_1 = "removetag test.html | number |1";
+    std::string usr_input_1 = "removetag test.html |2 removetag test.html |1";
 
     std::pair<std::vector<Command>, std::string> cmds_1 =\
      parse_cmd(usr_input_1);

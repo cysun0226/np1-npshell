@@ -183,6 +183,19 @@ int build_pipe(std::vector<Command> &cmds, std::string filename){
           }
           // relay to following commands
           else{
+              // redirct all cmd.out_fd that output to the same cmd
+              for (size_t j = i+1; j<cmds.size(); j++){
+                if (cmds[j].pipe_out != PIPE_STDOUT){
+                  if (cmds[j].pipe_out + cmds[j].idx == cmds[i].pipe_out+cmds[i].idx){
+                    cmds[j].out_fd = cmds[i].out_fd;
+                  }
+                }
+                else{
+                  if (cmds[i].idx+cmds[i].pipe_out==cmds[j].idx+1){
+                    cmds[j].out_fd = cmds[i].out_fd;      
+                  } 
+                }
+              }
               // update pipe_out for following commands
               cmds[i].pipe_out += (cmds[i].idx);
               Pipe p = {fd, cmds[i].pipe_out};
