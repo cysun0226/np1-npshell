@@ -1,4 +1,6 @@
 #include "../npshell.h"
+#include <sys/stat.h>
+#include <fcntl.h>
 
 std::vector<Command> create_cmds(std::string* cmds_str, 
                                  std::string* args,
@@ -168,7 +170,7 @@ pid_t exec_cmd(Command cmd, bool last){
   return pid;
 }
 
-std::vector<int*> build_pipe(std::vector<Command> &cmds){
+std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
   std::vector<int*> fd_list;
   /* Check if previous pipe occurs */
   for (size_t i = 0; i < cmds.size(); i++){
@@ -185,7 +187,8 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
       }
       // next input has existing pipe
-      if (cmds[i].pipe_out == PIPE_STDOUT && cmds[i].idx+1==pipe_table[p].out_target){
+      if (cmds[i].pipe_out == PIPE_STDOUT && cmds[i].idx+1==pipe_table[p].out_target &&
+          cmds[i].idx!=cmds.size()-1){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
       }
     }
@@ -266,15 +269,27 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds){
           }
       }
   }
+  
+  // if output to file
+  int outfile_fd;
+  if (cmds.back().fd_type == '>'){
+    outfile_fd = open(filename.c_str(),
+    O_WRONLY | O_CREAT | O_TRUNC,
+    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+    cmds.back().out_fd = outfile_fd;
+  }
+
   return fd_list;
 }
 
-int exec_cmds(std::vector<Command> cmds){
+int exec_cmds(std::pair<std::vector<Command>, std::string> parsed_cmd){
+    std::vector<Command> cmds = parsed_cmd.first;
     int status;
     pid_t last_pid;
 
     // build pipes
-    std::vector<int*> fd_list = build_pipe(cmds);
+    std::vector<int*> fd_list = build_pipe(cmds, parsed_cmd.second);
 
     // execute commands
     for (size_t i = 0; i < cmds.size(); i++){
@@ -314,22 +329,37 @@ int main() {
     // std::string usr_input_1 = "cat test.html |3 ls -l |2\
     //  removetag test.html |4 number | number";
     
-    std::string usr_input_1 = "removetag test.html |2 removetag test.html |1";
+    // % ls bin > ls.txt
+    // % removetag0 test.html !1
+    // % number | number |2
+    // % cat -n ls.txt
+    // % number
+    
+    std::string usr_input_1 = "ls bin > ls.txt";
 
     std::pair<std::vector<Command>, std::string> cmds_1 =\
      parse_cmd(usr_input_1);
     
-    int status = exec_cmds(cmds_1.first);
+    int status = exec_cmds(cmds_1);
 
-    std::string usr_input_2 = "number";
-    std::pair<std::vector<Command>, std::string> cmds_2 =\
-     parse_cmd(usr_input_2);
+    std::string usr_input = "removetag0 test.html !1";
+    std::pair<std::vector<Command>, std::string> cmds =\
+     parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
+    usr_input = "number | number |2";
+    cmds = parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
+    usr_input = "cat -n ls.txt";
+    cmds = parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
+    usr_input = "number";
+    cmds = parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
     
-    int status2 = exec_cmds(cmds_2.first);
-
-    std::string usr_input_3 = "removetag test.html | number ";
-    std::pair<std::vector<Command>, std::string> cmds_3 =\
-     parse_cmd(usr_input_3);
 
     // int status3 = exec_cmds(cmds_3.first);
 

@@ -123,7 +123,8 @@ int build_pipe(std::vector<Command> &cmds, std::string filename){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
       }
       // next input has existing pipe
-      if (cmds[i].pipe_out == PIPE_STDOUT && cmds[i].idx+1==pipe_table[p].out_target){
+      if (cmds[i].pipe_out == PIPE_STDOUT && cmds[i].idx+1==pipe_table[p].out_target &&
+          cmds[i].idx!=cmds.size()-1){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
       }
     }
