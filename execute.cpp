@@ -93,11 +93,13 @@ pid_t exec_cmd(Command cmd, bool last){
 
     // use signal handler to catch child that is not output to stdout
     if (cmd.out_fd != STDOUT_FILENO){
-      signal(SIGCHLD, child_handler);
-    }
-    else if (last && cmd.fd_type=='>') {
-      close(cmd.out_fd);
-      waitpid(pid, &status, 0);
+      if (last && cmd.fd_type=='>') {
+        close(cmd.out_fd);
+        waitpid(pid, &status, 0);
+      }
+      else{
+        signal(SIGCHLD, child_handler);
+      }
     }
     else{
       // wait for the stdout process
