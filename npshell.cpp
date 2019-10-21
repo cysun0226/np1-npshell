@@ -34,7 +34,7 @@ int get_cmd(){
   = parse_cmd(usr_input);
 
   // exec
-  exec_cmds(parsed_cmd.first);
+  exec_cmds(parsed_cmd);
 
   return status;
 }

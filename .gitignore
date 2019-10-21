@@ -2,6 +2,7 @@ bin/*
 *.out
 *.html
 *.o
+*.txt
 npshell
 .vscode/
 README.md

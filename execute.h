@@ -2,6 +2,8 @@
 #define EXECUTE_H
 
 #include "npshell.h"
+#include <sys/stat.h>
+#include <fcntl.h>
 
 // variables
 extern std::vector<Pipe> pipe_table;
@@ -13,11 +15,11 @@ extern std::vector<int*> tmp_delete;
 
 void child_handler(int signo);
 
-std::vector<int*> build_pipe(std::vector<Command> &cmds);
+int build_pipe(std::vector<Command> &cmds);
 
 pid_t exec_cmd(Command cmd, bool last);
 
-int exec_cmds(std::vector<Command> cmds);
+int exec_cmds(std::pair<std::vector<Command>, std::string> parsed_cmd);
 
 void clean_up();
 

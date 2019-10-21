@@ -90,6 +90,10 @@ pid_t exec_cmd(Command cmd, bool last){
     if (cmd.out_fd != STDOUT_FILENO){
       signal(SIGCHLD, child_handler);
     }
+    else if (last && cmd.fd_type=='>') {
+      close(cmd.out_fd);
+      signal(SIGCHLD, child_handler);
+    }
     else{
       // wait for the stdout process
       waitpid(pid, &status, 0);
@@ -102,7 +106,7 @@ pid_t exec_cmd(Command cmd, bool last){
   return pid;
 }
 
-std::vector<int*> build_pipe(std::vector<Command> &cmds){
+int build_pipe(std::vector<Command> &cmds, std::string filename){
   std::vector<int*> fd_list;
   /* Check if previous pipe occurs */
   for (size_t i = 0; i < cmds.size(); i++){
@@ -186,15 +190,27 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds){
           }
       }
   }
-  return fd_list;
+
+  // if output to file
+  int outfile_fd;
+  if (cmds.back().fd_type == '>'){
+    outfile_fd = open(filename.c_str(),
+    O_WRONLY | O_CREAT | O_TRUNC,
+    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+    cmds.back().out_fd = outfile_fd;
+  }
+
+  return outfile_fd;
 }
 
-int exec_cmds(std::vector<Command> cmds){
+int exec_cmds(std::pair<std::vector<Command>, std::string> parsed_cmd){
+    std::vector<Command> cmds = parsed_cmd.first;
     int status;
     pid_t last_pid;
 
     // build pipes
-    std::vector<int*> fd_list = build_pipe(cmds);
+    int outfile_fd = build_pipe(cmds, parsed_cmd.second);
 
     // execute commands
     for (size_t i = 0; i < cmds.size(); i++){
