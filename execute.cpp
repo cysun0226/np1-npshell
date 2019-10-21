@@ -12,7 +12,8 @@ void child_handler(int signo){
 
 pid_t exec_cmd(Command cmd, bool last){
   int status;
-  pid_t pid = -1;
+  pid_t pid;
+  bool fork_failed;
   int pipe_id = 0;
 
   // check if exit
@@ -20,12 +21,17 @@ pid_t exec_cmd(Command cmd, bool last){
     return EXIT;
   }
 
+  // fork child process
+  pid = fork();
+
   // if can't fork, sleep and wait for nect fork
-  pid = fork();
-  while (fork() < 0) {
-    usleep (1000);
+  fork_failed = (pid < 0)? true:false;
+  if (fork_failed){
+    while (fork() < 0) {
+      usleep (1000);
+    }
+    pid = fork();
   }
-  pid = fork();
 
   switch (pid){
   case -1:{
