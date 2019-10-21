@@ -12,15 +12,21 @@ void child_handler(int signo){
 
 pid_t exec_cmd(Command cmd, bool last){
   int status;
-  pid_t pid;
+  pid_t pid = -1;
   int pipe_id = 0;
 
   // check if exit
   if (cmd.cmd == "exit"){
     return EXIT;
   }
-  
-  pid = fork();
+
+  // if can't fork, sleep and wait for nect fork
+  while (pid == -1){
+    pid = fork();
+    if (pid == -1){
+      usleep (1000);
+    }
+  }
 
   switch (pid){
   case -1:{
@@ -60,6 +66,7 @@ pid_t exec_cmd(Command cmd, bool last){
 
     // execute    
     status = execvp(args[0], (char**)args); // process name, args
+    std::cerr << "Unknown command: [" << args[0] << "]." << std::endl;
 
     exit(status);
     break;
@@ -238,4 +245,27 @@ void clean_up(){
     for (size_t i = 0; i < pipe_table.size(); i++){
         delete[] pipe_table[i].fd;
     }
+}
+
+void set_env(std::string usr_input) {
+  std::stringstream ss;
+  ss.str(usr_input);
+  std::string var, value, cmd_str;
+  ss >> var >> value;
+
+  setenv(var.c_str(), value.c_str(), 1);
+}
+
+std::string print_env(std::string usr_input){
+  std::stringstream ss;
+  ss.str(usr_input);
+  std::string var_str, cmd_str;
+  ss >> var_str;
+  char* var = new char[var_str.size()+1];
+  strcpy(var, var_str.c_str());
+
+  char* ptr = getenv(var);
+  delete [] var;
+
+  return std::string(ptr);
 }

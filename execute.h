@@ -21,5 +21,8 @@ int exec_cmds(std::vector<Command> cmds);
 
 void clean_up();
 
+void set_env(std::string usr_input);
+
+std::string print_env(std::string);
 
 #endif

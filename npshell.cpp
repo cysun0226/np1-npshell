@@ -13,16 +13,20 @@ int get_cmd(){
   std::string usr_input;
   std::getline(std::cin, usr_input);
 
-  // if EOF
-  if (std::cin.eof()){
+  // if EOF or exit
+  if (std::cin.eof() || usr_input == "exit"){
     clean_up();
     return EXIT;
-  }  
+  }
 
-  // if exit
-  if (usr_input == "exit"){
-    clean_up();
-    return EXIT;
+  // env command
+  if (usr_input.substr(0, 6) == "setenv"){
+    set_env(usr_input.substr(7));
+    return SUCCESS;
+  }
+  if (usr_input.substr(0, 8) == "printenv"){
+    std::cout << print_env(usr_input.substr(9)) << std::endl;
+    return SUCCESS;
   }
 
   // parse
