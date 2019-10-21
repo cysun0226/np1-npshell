@@ -13,8 +13,15 @@ int get_cmd(){
   std::string usr_input;
   std::getline(std::cin, usr_input);
 
+  // if EOF
+  if (std::cin.eof()){
+    clean_up();
+    return EXIT;
+  }  
+
   // if exit
   if (usr_input == "exit"){
+    clean_up();
     return EXIT;
   }
 

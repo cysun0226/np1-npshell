@@ -217,3 +217,25 @@ int exec_cmds(std::vector<Command> cmds){
 
     return status;
 }
+
+void clean_up(){
+    // delete tmp pipes for current cmds
+    for (size_t i = 0; i < tmp_delete.size(); i++){
+        delete [] tmp_delete[i];
+    }
+    tmp_delete.clear();
+
+    // delete used pipe in pipe_table
+    for (size_t i = 0; i < table_delete.size(); i++){
+        // delete fd
+        delete[] table_delete[i].first; 
+        // delete entry in pipe_table
+        pipe_table[table_delete[i].second] = pipe_table.back();
+        pipe_table.pop_back();
+    }
+    table_delete.clear();
+
+    for (size_t i = 0; i < pipe_table.size(); i++){
+        delete[] pipe_table[i].fd;
+    }
+}

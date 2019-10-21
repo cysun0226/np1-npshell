@@ -19,5 +19,7 @@ pid_t exec_cmd(Command cmd, bool last);
 
 int exec_cmds(std::vector<Command> cmds);
 
+void clean_up();
+
 
 #endif
