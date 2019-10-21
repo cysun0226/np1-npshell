@@ -21,12 +21,11 @@ pid_t exec_cmd(Command cmd, bool last){
   }
 
   // if can't fork, sleep and wait for nect fork
-  while (pid == -1){
-    pid = fork();
-    if (pid == -1){
-      usleep (1000);
-    }
+  pid = fork();
+  while (fork() < 0) {
+    usleep (1000);
   }
+  pid = fork();
 
   switch (pid){
   case -1:{
