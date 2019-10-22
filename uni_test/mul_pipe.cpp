@@ -4,8 +4,8 @@
 
 std::vector<Pipe> pipe_table;
 std::vector< std::pair <int*, int> > table_delete;
-std::vector<int*> tmp_delete;
-std::map<int, int> out_fd_map;
+std::vector<std::pair <int*, int>> tmp_delete;
+std::map<int, int> fd_map;
 // pair.first , pair.second
 
 std::vector<Command> create_cmds(std::string* cmds_str, 
@@ -119,8 +119,8 @@ pid_t exec_cmd(Command cmd, bool last){
 
     // close unuse pipes
     for (size_t i = 0; i < tmp_delete.size(); i++){
-      close(tmp_delete[i][READ]);
-      close(tmp_delete[i][WRITE]);
+      close(tmp_delete[i].first[READ]);
+      close(tmp_delete[i].first[WRITE]);
     }
     for (size_t i = 0; i < table_delete.size(); i++){
       close(table_delete[i].first[READ]);
@@ -145,25 +145,31 @@ pid_t exec_cmd(Command cmd, bool last){
   
   // pid > 0, parent
   default:{
+    // close useless pipe
     for (size_t i = 0; i < tmp_delete.size(); i++){
-      if (cmd.in_fd == tmp_delete[i][READ]){
+      if (cmd.in_fd == tmp_delete[i].first[READ]){
         close(cmd.in_fd); 
       }
-
-      if (cmd.out_fd == tmp_delete[i][WRITE]){
-        if (out_fd_map[cmd.out_fd] == cmd.idx && cmd.out_fd != STDOUT_FILENO &&
-        cmd.fd_type != '>' && cmd.pipe_out == PIPE_STDOUT){
-          close(cmd.out_fd);
-        }
+      if(cmd.idx == tmp_delete[i].second){
+        close(tmp_delete[i].first[WRITE]);
       }
     }
+
+    // for (size_t i = 0; i < table_delete.size(); i++){
+    //   if (cmd.in_fd == table_delete[i].first[READ]){
+    //     close(cmd.in_fd); 
+    //   }
+    //   if(cmd.idx == table_delete[i].second){
+    //     close(table_delete[i].first[WRITE]);
+    //   }
+    // }
 
     // close pipe
     if (last){
 
       for (size_t i = 0; i < tmp_delete.size(); i++){      
-        close(tmp_delete[i][READ]);
-        close(tmp_delete[i][WRITE]);
+        close(tmp_delete[i].first[READ]);
+        close(tmp_delete[i].first[WRITE]);
       }
       
       for (size_t i = 0; i < table_delete.size(); i++){
@@ -209,13 +215,13 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
       // output target has existing pipe
       if (cmds[i].pipe_out == pipe_table[p].out_target){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
-          out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
+          // out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
       }
       // next input has existing pipe
       if (cmds[i].pipe_out == PIPE_STDOUT && cmds[i].idx+1==pipe_table[p].out_target &&
           cmds[i].fd_type != '-'){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
-          out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
+          // out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
       }
     }
   }
@@ -248,9 +254,10 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
           cmds[i].out_fd = fd[WRITE];
           cmds[i+1].in_fd = fd[READ];
           
-          out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
           fd_list.push_back(fd);
-          tmp_delete.push_back(fd);
+          std::pair <int*, int> table_entry(fd, i+1);
+          // can delete after used
+          tmp_delete.push_back(table_entry);
       }      
 
       // no existing pipe for the output target
@@ -267,19 +274,20 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
           // output target is in the current cmds
           if (cmds[i].pipe_out < cmds.size()-cmds[i].idx){
               cmds[i+cmds[i].pipe_out].in_fd = fd[READ];
-              tmp_delete.push_back(fd);
+              std::pair <int*, int> table_entry(fd, i+cmds[i].pipe_out);
+              tmp_delete.push_back(table_entry);
               // redirct all cmd.out_fd that output to the same cmd
               for (size_t j = i+1; j<cmds.size(); j++){
                 if (cmds[j].pipe_out != PIPE_STDOUT){
                   if (cmds[j].pipe_out + cmds[j].idx == cmds[i].pipe_out+cmds[i].idx){
                     cmds[j].out_fd = cmds[i].out_fd;
-                    out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
+                    // out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
                   }
                 }
                 else{
                   if (cmds[i].idx+cmds[i].pipe_out==cmds[j].idx+1){
                     cmds[j].out_fd = cmds[i].out_fd;
-                    out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe      
+                    // out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe      
                   } 
                 }
               }
@@ -334,10 +342,10 @@ int exec_cmds(std::pair<std::vector<Command>, std::string> parsed_cmd){
     
     // delete tmp pipes for current cmds
     for (size_t i = 0; i < tmp_delete.size(); i++){
-        delete [] tmp_delete[i];
+        delete [] tmp_delete[i].first;
     }
     tmp_delete.clear();
-    out_fd_map.clear();
+    fd_map.clear();
 
     // delete used pipe in pipe_table
     for (size_t i = 0; i < table_delete.size(); i++){
@@ -376,33 +384,30 @@ int main() {
     std::pair<std::vector<Command>, std::string> cmds;
     int status;
     
-    // std::string usr_input_1 = "ls bin > ls.txt";
-
-    // std::pair<std::vector<Command>, std::string> cmds_1 =\
-    //  parse_cmd(usr_input_1);
-    
-    // int status = exec_cmds(cmds_1);
-
-    // std::string usr_input = "removetag0 test.html !1";
-    // std::pair<std::vector<Command>, std::string> cmds =\
-    //  parse_cmd(usr_input);
-    // status = exec_cmds(cmds);
-
-    // usr_input = "number | number |2";
-    // cmds = parse_cmd(usr_input);
-    // status = exec_cmds(cmds);
-
-    // usr_input = "cat -n ls.txt";
-    // cmds = parse_cmd(usr_input);
-    // status = exec_cmds(cmds);
-
-    // usr_input = "number";
-    // cmds = parse_cmd(usr_input);
-    // status = exec_cmds(cmds);
-
-    usr_input = "ls | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat";
+    usr_input = "ls bin > ls.txt";
     cmds = parse_cmd(usr_input);
     status = exec_cmds(cmds);
+    
+
+    usr_input = "removetag0 test.html !1";
+    cmds = parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
+    usr_input = "number | number |2";
+    cmds = parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
+    usr_input = "cat -n ls.txt";
+    cmds = parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
+    usr_input = "number";
+    cmds = parse_cmd(usr_input);
+    status = exec_cmds(cmds);
+
+    // usr_input = "ls | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat";
+    // cmds = parse_cmd(usr_input);
+    // status = exec_cmds(cmds);
 
     
 
