@@ -145,11 +145,17 @@ pid_t exec_cmd(Command cmd, bool last){
   
   // pid > 0, parent
   default:{
-    if (std::find(tmp_delete.begin(), tmp_delete.end(), &cmd.in_fd) != tmp_delete.end()){
-      close(cmd.in_fd); 
-      if (out_fd_map[cmd.out_fd] == cmd.idx){
-        close(cmd.out_fd);
+    for (size_t i = 0; i < tmp_delete.size(); i++){
+      if (cmd.in_fd == tmp_delete[i][READ]){
+        close(cmd.in_fd); 
       }
+
+      // if (cmd.out_fd == tmp_delete[i][WRITE]){
+      //   if (out_fd_map[cmd.out_fd] == cmd.idx && cmd.out_fd != STDOUT_FILENO &&
+      //   cmd.fd_type != '>'){
+      //     close(cmd.out_fd);
+      //   }
+      // }
     }
 
     // close pipe
