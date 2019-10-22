@@ -9,7 +9,7 @@
 extern std::vector<Pipe> pipe_table;
 extern std::vector< std::pair <int*, int> > table_delete;
 extern std::vector<int*> tmp_delete;
-
+extern std::map<int, int> out_fd_map;
 
 // functions
 
