@@ -254,6 +254,7 @@ int exec_cmds(std::pair<std::vector<Command>, std::string> parsed_cmd){
         delete [] tmp_delete[i];
     }
     tmp_delete.clear();
+    out_fd_map.clear();
 
     // delete used pipe in pipe_table
     for (size_t i = 0; i < table_delete.size(); i++){
