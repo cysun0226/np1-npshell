@@ -150,12 +150,12 @@ pid_t exec_cmd(Command cmd, bool last){
         close(cmd.in_fd); 
       }
 
-      // if (cmd.out_fd == tmp_delete[i][WRITE]){
-      //   if (out_fd_map[cmd.out_fd] == cmd.idx && cmd.out_fd != STDOUT_FILENO &&
-      //   cmd.fd_type != '>'){
-      //     close(cmd.out_fd);
-      //   }
-      // }
+      if (cmd.out_fd == tmp_delete[i][WRITE]){
+        if (out_fd_map[cmd.out_fd] == cmd.idx && cmd.out_fd != STDOUT_FILENO &&
+        cmd.fd_type != '>' && cmd.out_fd == PIPE_STDOUT){
+          close(cmd.out_fd);
+        }
+      }
     }
 
     // close pipe
