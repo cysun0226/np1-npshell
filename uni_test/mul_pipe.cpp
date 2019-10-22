@@ -152,7 +152,7 @@ pid_t exec_cmd(Command cmd, bool last){
 
       if (cmd.out_fd == tmp_delete[i][WRITE]){
         if (out_fd_map[cmd.out_fd] == cmd.idx && cmd.out_fd != STDOUT_FILENO &&
-        cmd.fd_type != '>' && cmd.out_fd == PIPE_STDOUT){
+        cmd.fd_type != '>' && cmd.pipe_out == PIPE_STDOUT){
           close(cmd.out_fd);
         }
       }
@@ -371,28 +371,36 @@ int main() {
     // % number | number |2
     // % cat -n ls.txt
     // % number
+
+    std::string usr_input;
+    std::pair<std::vector<Command>, std::string> cmds;
+    int status;
     
-    std::string usr_input_1 = "ls bin > ls.txt";
+    // std::string usr_input_1 = "ls bin > ls.txt";
 
-    std::pair<std::vector<Command>, std::string> cmds_1 =\
-     parse_cmd(usr_input_1);
+    // std::pair<std::vector<Command>, std::string> cmds_1 =\
+    //  parse_cmd(usr_input_1);
     
-    int status = exec_cmds(cmds_1);
+    // int status = exec_cmds(cmds_1);
 
-    std::string usr_input = "removetag0 test.html !1";
-    std::pair<std::vector<Command>, std::string> cmds =\
-     parse_cmd(usr_input);
-    status = exec_cmds(cmds);
+    // std::string usr_input = "removetag0 test.html !1";
+    // std::pair<std::vector<Command>, std::string> cmds =\
+    //  parse_cmd(usr_input);
+    // status = exec_cmds(cmds);
 
-    usr_input = "number | number |2";
-    cmds = parse_cmd(usr_input);
-    status = exec_cmds(cmds);
+    // usr_input = "number | number |2";
+    // cmds = parse_cmd(usr_input);
+    // status = exec_cmds(cmds);
 
-    usr_input = "cat -n ls.txt";
-    cmds = parse_cmd(usr_input);
-    status = exec_cmds(cmds);
+    // usr_input = "cat -n ls.txt";
+    // cmds = parse_cmd(usr_input);
+    // status = exec_cmds(cmds);
 
-    usr_input = "number";
+    // usr_input = "number";
+    // cmds = parse_cmd(usr_input);
+    // status = exec_cmds(cmds);
+
+    usr_input = "ls | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat";
     cmds = parse_cmd(usr_input);
     status = exec_cmds(cmds);
 

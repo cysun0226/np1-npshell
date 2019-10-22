@@ -81,7 +81,7 @@ pid_t exec_cmd(Command cmd, bool last){
 
       if (cmd.out_fd == tmp_delete[i][WRITE]){
         if (out_fd_map[cmd.out_fd] == cmd.idx && cmd.out_fd != STDOUT_FILENO &&
-        cmd.fd_type != '>' && cmd.out_fd == PIPE_STDOUT){
+        cmd.fd_type != '>' && cmd.pipe_out == PIPE_STDOUT){
           close(cmd.out_fd);
         }
       }
