@@ -155,15 +155,6 @@ pid_t exec_cmd(Command cmd, bool last){
       }
     }
 
-    // for (size_t i = 0; i < table_delete.size(); i++){
-    //   if (cmd.in_fd == table_delete[i].first[READ]){
-    //     close(cmd.in_fd); 
-    //   }
-    //   if(cmd.idx == table_delete[i].second){
-    //     close(table_delete[i].first[WRITE]);
-    //   }
-    // }
-
     // close pipe
     if (last){
 
