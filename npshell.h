@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <utility>
+#include <map>
 
 #define PROMPT_SYMBOL "%" 
 #define PIPE_BUFFER_SIZE 15000

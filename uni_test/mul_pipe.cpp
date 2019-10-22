@@ -2,6 +2,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+std::vector<Pipe> pipe_table;
+std::vector< std::pair <int*, int> > table_delete;
+std::vector<int*> tmp_delete;
+std::map<int, int> out_fd_map;
+// pair.first , pair.second
+
 std::vector<Command> create_cmds(std::string* cmds_str, 
                                  std::string* args,
                                  int* pipe_out,
@@ -74,10 +80,7 @@ std::pair <std::vector<Command>, std::string> parse_cmd(std::string usr_input) {
     return std::pair<std::vector<Command>, std::string>(cmds, out_file);
 }
 
-std::vector<Pipe> pipe_table;
-std::vector< std::pair <int*, int> > table_delete;
-std::vector<int*> tmp_delete;
-// pair.first , pair.second
+
 
 void child_handler(int signo){
     int status;
@@ -142,12 +145,21 @@ pid_t exec_cmd(Command cmd, bool last){
   
   // pid > 0, parent
   default:{
+    if (std::find(tmp_delete.begin(), tmp_delete.end(), &cmd.in_fd) != tmp_delete.end()){
+      close(cmd.in_fd); 
+      if (out_fd_map[cmd.out_fd] == cmd.idx){
+        close(cmd.out_fd);
+      }
+    }
+
+    // close pipe
     if (last){
-      // close pipe
+
       for (size_t i = 0; i < tmp_delete.size(); i++){      
         close(tmp_delete[i][READ]);
         close(tmp_delete[i][WRITE]);
       }
+      
       for (size_t i = 0; i < table_delete.size(); i++){
         close(table_delete[i].first[READ]);
         close(table_delete[i].first[WRITE]);
@@ -156,7 +168,13 @@ pid_t exec_cmd(Command cmd, bool last){
 
     // use signal handler to catch child that is not output to stdout
     if (cmd.out_fd != STDOUT_FILENO){
-      signal(SIGCHLD, child_handler);
+      if (last && cmd.fd_type=='>') {
+        close(cmd.out_fd);
+        waitpid(pid, &status, 0);
+      }
+      else{
+        signal(SIGCHLD, child_handler);
+      }
     }
     else{
       // wait for the stdout process
@@ -185,13 +203,25 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
       // output target has existing pipe
       if (cmds[i].pipe_out == pipe_table[p].out_target){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
+          out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
       }
       // next input has existing pipe
       if (cmds[i].pipe_out == PIPE_STDOUT && cmds[i].idx+1==pipe_table[p].out_target &&
           cmds[i].fd_type != '-'){
           cmds[i].out_fd = pipe_table[p].fd[WRITE];
+          out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
       }
     }
+  }
+
+  // if output to file
+  int outfile_fd;
+  if (cmds.back().fd_type == '>'){
+    outfile_fd = open(filename.c_str(),
+    O_WRONLY | O_CREAT | O_TRUNC,
+    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+    cmds.back().out_fd = outfile_fd;
   }
 
   /* Create required new pipes */
@@ -212,7 +242,7 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
           cmds[i].out_fd = fd[WRITE];
           cmds[i+1].in_fd = fd[READ];
           
-          
+          out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
           fd_list.push_back(fd);
           tmp_delete.push_back(fd);
       }      
@@ -237,11 +267,13 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
                 if (cmds[j].pipe_out != PIPE_STDOUT){
                   if (cmds[j].pipe_out + cmds[j].idx == cmds[i].pipe_out+cmds[i].idx){
                     cmds[j].out_fd = cmds[i].out_fd;
+                    out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe
                   }
                 }
                 else{
                   if (cmds[i].idx+cmds[i].pipe_out==cmds[j].idx+1){
-                    cmds[j].out_fd = cmds[i].out_fd;      
+                    cmds[j].out_fd = cmds[i].out_fd;
+                    out_fd_map[cmds[i].out_fd] = i;  //  update last user of this pipe      
                   } 
                 }
               }
@@ -257,7 +289,7 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
                 }
                 else{
                   if (cmds[i].idx+cmds[i].pipe_out==cmds[j].idx+1){
-                    cmds[j].out_fd = cmds[i].out_fd;      
+                    cmds[j].out_fd = cmds[i].out_fd;
                   } 
                 }
               }
@@ -268,17 +300,15 @@ std::vector<int*> build_pipe(std::vector<Command> &cmds, std::string filename){
               pipe_table.push_back(p);
           }
       }
+
+      
+
+      exec_cmd(cmds[i], i==cmds.size()-1);
+
+
   }
   
-  // if output to file
-  int outfile_fd;
-  if (cmds.back().fd_type == '>'){
-    outfile_fd = open(filename.c_str(),
-    O_WRONLY | O_CREAT | O_TRUNC,
-    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-    cmds.back().out_fd = outfile_fd;
-  }
+  
 
   return fd_list;
 }
@@ -292,15 +322,16 @@ int exec_cmds(std::pair<std::vector<Command>, std::string> parsed_cmd){
     std::vector<int*> fd_list = build_pipe(cmds, parsed_cmd.second);
 
     // execute commands
-    for (size_t i = 0; i < cmds.size(); i++){
-        exec_cmd(cmds[i], i==cmds.size()-1);
-    }
+    // for (size_t i = 0; i < cmds.size(); i++){
+    //     exec_cmd(cmds[i], i==cmds.size()-1);
+    // }
     
     // delete tmp pipes for current cmds
     for (size_t i = 0; i < tmp_delete.size(); i++){
         delete [] tmp_delete[i];
     }
     tmp_delete.clear();
+    out_fd_map.clear();
 
     // delete used pipe in pipe_table
     for (size_t i = 0; i < table_delete.size(); i++){
