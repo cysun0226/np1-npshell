@@ -320,6 +320,9 @@ std::string print_env(std::string usr_input){
 
   char* ptr = getenv(var);
   delete [] var;
+  if (ptr == nullptr){
+    return "";
+  }
 
   return std::string(ptr);
 }

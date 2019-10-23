@@ -26,7 +26,10 @@ int get_cmd(){
     return SUCCESS;
   }
   if (usr_input.substr(0, 8) == "printenv"){
-    std::cout << print_env(usr_input.substr(9)) << std::endl;
+    std::string env_var = print_env(usr_input.substr(9));
+    if (env_var != ""){
+      std::cout << env_var << std::endl; 
+    }
     update_up_target();
     return SUCCESS;
   }

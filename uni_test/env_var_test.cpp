@@ -11,6 +11,10 @@ int main(){
   ptr = getenv ("PATH");
   std::cout << "Current PATH" << std::endl;
   std::cout << ptr << std::endl;
+
+  ptr = getenv ("XD");
+  std::cout << "Current PATH" << std::endl;
+  std::cout << ptr << std::endl;
   return 0;
 }
 
