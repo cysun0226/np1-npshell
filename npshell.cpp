@@ -38,6 +38,12 @@ int get_cmd(){
   std::pair<std::vector<Command>, std::string> parsed_cmd\
   = parse_cmd(usr_input);
 
+  // if no input
+  if (parsed_cmd.first.size() < 1){
+    return SUCCESS;
+  }
+  
+
   // exec
   exec_cmds(parsed_cmd);
 
