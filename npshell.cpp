@@ -22,10 +22,12 @@ int get_cmd(){
   // env command
   if (usr_input.substr(0, 6) == "setenv"){
     set_env(usr_input.substr(7));
+    update_up_target();
     return SUCCESS;
   }
   if (usr_input.substr(0, 8) == "printenv"){
     std::cout << print_env(usr_input.substr(9)) << std::endl;
+    update_up_target();
     return SUCCESS;
   }
 

@@ -323,3 +323,10 @@ std::string print_env(std::string usr_input){
 
   return std::string(ptr);
 }
+
+void update_up_target(){
+  // update out_target in pipe_table
+    for (size_t i = 0; i < pipe_table.size(); i++){
+        pipe_table[i].out_target -= 1;
+    }
+}

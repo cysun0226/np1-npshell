@@ -27,4 +27,6 @@ void set_env(std::string usr_input);
 
 std::string print_env(std::string);
 
+void update_up_target();
+
 #endif
