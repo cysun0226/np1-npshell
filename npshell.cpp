@@ -3,8 +3,10 @@
 #include "execute.h" 
 
 
+
 int get_cmd(){
   int status = SUCCESS;
+  bool use_src = false;
 
   // prompt
   std::cout << PROMPT_SYMBOL << " " << std::flush;
@@ -34,6 +36,27 @@ int get_cmd(){
     return SUCCESS;
   }
 
+  // source 
+  if (usr_input.substr(0, 6) == "source"){
+    use_src = true;
+    usr_input = get_cmd_from_source(usr_input.substr(7));
+  }
+
+  if (use_src){
+    std::stringstream ss(usr_input);
+    std::string line;
+
+    while (std::getline(ss, line, '\n')){
+     // parse
+      std::pair<std::vector<Command>, std::string> parsed_cmd\
+      = parse_cmd(line); 
+      // exec
+      exec_cmds(parsed_cmd);
+    }
+    
+  }
+  
+
   // parse
   std::pair<std::vector<Command>, std::string> parsed_cmd\
   = parse_cmd(usr_input);
@@ -42,10 +65,18 @@ int get_cmd(){
   if (parsed_cmd.first.size() < 1){
     return SUCCESS;
   }
-  
+
+  // if source, restore
+  if (use_src){
+  restore_src_table();
+   update_up_target();
+   return status;
+  }
 
   // exec
   exec_cmds(parsed_cmd);
+
+  
 
   return status;
 }

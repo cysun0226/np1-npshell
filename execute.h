@@ -4,6 +4,8 @@
 #include "npshell.h"
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <fstream>
+#include <streambuf>
 
 // variables
 extern std::vector<Pipe> pipe_table;
@@ -28,5 +30,9 @@ void set_env(std::string usr_input);
 std::string print_env(std::string);
 
 void update_up_target();
+
+std::string get_cmd_from_source(std::string f_name);
+
+void restore_src_table();
 
 #endif

@@ -5,6 +5,11 @@ std::vector< std::pair <int*, int> > table_delete;
 std::vector<std::pair <int*, int>> tmp_delete;
 std::map<int, int> out_fd_map;
 
+std::vector<Pipe> pipe_table_bk;
+std::vector< std::pair <int*, int> > table_delete_bk;
+std::vector<std::pair <int*, int>> tmp_delete_bk;
+
+
 void child_handler(int signo){
     int status;
     // -1 : wait for any child
@@ -332,4 +337,31 @@ void update_up_target(){
     for (size_t i = 0; i < pipe_table.size(); i++){
         pipe_table[i].out_target -= 1;
     }
+}
+
+std::string get_cmd_from_source(std::string f_name){
+  std::stringstream ss;
+  ss.str(f_name);
+  std::string file_name;
+  ss >> file_name;
+
+  std::ifstream t(file_name);
+  std::string cmd_file(
+    (std::istreambuf_iterator<char>(t)),
+    std::istreambuf_iterator<char>()
+  );
+
+  // back up pipes
+  // std::vector<Pipe> pipe_table_bk;
+  pipe_table_bk.clear();
+  pipe_table_bk.assign(pipe_table.begin(), pipe_table.end());
+  pipe_table.clear();
+
+  return cmd_file;
+
+}
+
+void restore_src_table(){
+  pipe_table.clear();
+  pipe_table.assign(pipe_table_bk.begin(), pipe_table_bk.end()); 
 }
